@@ -1,0 +1,1540 @@
+{% extends "beauty/base.html" %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    /* Modal background */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+
+
+    }
+
+    .hide-buttons {
+        display: none;
+    }
+
+    .btnDecreaseQtyTable {
+        height: 1.3rem;
+        border: none;
+        /* margin-left:2px; */
+        margin-right: 0.5px;
+        background-color: white;
+        color: rgb(123, 5, 5);
+        /* border:1px solid #cccc; */
+        width: 1rem;
+
+    }
+
+    .btnIncreaseQtyTable {
+        height: 1.3rem;
+        border: none;
+        margin-left: 0.5px;
+        /* margin-right:2px; */
+        background-color: white;
+        color: rgb(123, 5, 5);
+        /* border:1px solid #cccc; */
+        width: 1rem;
+
+    }
+
+
+
+ 
+    /* Modal content */
+    .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 300px;
+        text-align: center;
+        position: relative;
+    }
+
+    #cartNotification {
+        margin-left: 5rem;
+        z-index: 10000;
+        right: 20;
+    }
+
+    .modal-content,
+    h2 {
+        top: 6px;
+    }
+
+    /* Close button */
+    .close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    a {
+        text-decoration: none;
+        color: #920e0eb1;
+    }
+
+    a:hover {
+        color: white !important;
+        background-color: rgb(123, 5, 5);
+        padding: 0;
+    }
+
+    button.btnOpenSearchModal {
+        background-color: rgb(123, 5, 5);
+        color: white;
+        border: 1px solid rgb(123, 5, 5);
+        margin-right: 20px;
+    }
+
+    button.btnOpenSearchModal:hover {
+        background-color: white;
+        color: black;
+        border: 1px solid rgb(123, 5, 5);
+    }
+
+    .reciptStyle h2 {
+        font-size: 1rem !important;
+        padding-bottom: 0;
+        padding-top: 0;
+
+
+
+
+    }
+
+    #reciptStyle {
+        border: 1px solid red;
+        padding: 0;
+    }
+
+    #reciptStyle h2 {
+        margin-top: 8px;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    #reciptStyle p {
+        padding: 0;
+        font-size: 12px;
+
+        margin: 0;
+        line-height: 1.2rem;
+    }
+</style>
+
+<form method="post">
+    {% csrf_token %}
+</form>
+<input type="hidden" id="cashierId" value="{{ request.user.staff_profile.id }}">
+<div class="container">
+    <link rel="stylesheet" href="{% static 'arcade/css/styles.css' %}">
+    <div class="left-panel">
+        <div class="transaction-container">
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Quantity</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionBody">
+                    <!-- Dynamic rows will go here -->
+                </tbody>
+            </table>
+        </div>
+        <div class="controls">
+            <button onclick="completeSale()">Complete</button>
+            <button onclick="holdTransaction()">Hold</button>
+            <button onclick="recallTransaction()">Recall</button>
+            <button onclick="openRefundOverlay()">Refund</button>
+            <button onclick="clearTransaction()">Clear</button>
+        </div>
+
+
+        <div class="totals">
+            <div>Total: ₦<span id="total2">0.00</span></div>
+            <div>Amount Paid: ₦<span id="amountPaid">0.00</span></div>
+            <div>Amount Due: ₦<span id="amountDue">0.00</span></div>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="categories">
+            <div class="search">
+                <button class="btnOpenSearchModal">Search Item</button>
+            </div>
+        </div>
+
+
+        <div class="numeric-keypad">
+            <input type="text" id="quantityInput" placeholder="Enter Quantity" onfocus="focusQuantityInput()">
+            <div class="keys">
+                <button onclick="appendNumber(1)">1</button>
+                <button onclick="appendNumber(2)">2</button>
+                <button onclick="appendNumber(3)">3</button>
+                <button onclick="appendNumber(4)">4</button>
+                <button onclick="appendNumber(5)">5</button>
+                <button onclick="appendNumber(6)">6</button>
+                <button onclick="appendNumber(7)">7</button>
+                <button onclick="appendNumber(8)">8</button>
+                <button onclick="appendNumber(9)">9</button>
+                <button onclick="appendNumber(0)">0</button>
+                <button onclick="clearInput()" class="btnActionKeys">cl</button>
+                <button onclick="backspace()" class="btnActionKeys">←</button>
+            </div>
+            <br>
+            <div class="payment-methods">
+                <button onclick="showPaymentModal()" class="btnActionKeys">Make Payment</button>
+            </div>
+
+            <!-- Payment Modal -->
+            <!-- <div id="paymentModal" class="modal" style="display: none;">
+                    <form id="paymentModal" class="modal-content">
+                        <span class="close" onclick="closePaymentModal()">&tmes;</span>i
+                        <h2>Make a Payment</h2>
+                        <hr>
+                        <div>
+                            <label for="paidBy">Payer's Name:</label>
+                            <input type="text" id="paidBy" name="paid_by" required>
+                        </div>
+                        <div class="payment-section">
+                            <input type="text" id="amountInput" placeholder="Enter Amount Paid" 
+                                ">
+                        </div>
+                        <div class="payment-methods">
+                            <button onclick="pay('Cash')">Cash</button>
+                            <button onclick="pay('Card')">Card</button>
+                            <button onclick="pay('Transfer')">Transfer</button>
+                        </div>
+                    </form>
+                </div> -->
+            <div id="paymentModal" class="modal">
+                <div class="modal-content">
+                    <button class="close-discount" onclick="closePaymentModal()">X</button>
+                    <h2>Make a Payment</h2>
+                    <hr>
+                    <form id="paymentForm" style="text-align: left;">
+                        <input type="hidden" name="sale_id">
+                        <label for="paidBy">Customer's Name:</label>
+                        <input type="text" id="paidBy" name="paid_by" required style="width: 100%;
+                            padding: 1px;
+                            margin-bottom: 4px;
+                            font-size: 16px;
+                            height:2.5rem;
+                            border: 1px solid #cccc;
+                            border-radius: 5px">
+
+                        <label for="amount">Amount:</label>
+                        <input type="number" id="amountInput" name="amount" onfocus="focusAmountInput()"
+                            oninput="updatePayment()" required style="width: 100%;
+                            padding: 1px;
+                            margin-bottom: 10px;
+                            font-size: 16px;
+                            height:2.5rem;
+                            border: 1px solid #cccc;
+                            border-radius: 5px">
+
+                        <label for="paymentMethod">Payment Method:</label>
+                        <select id="paymentMethod" name="payment_method" style="width: 100%;
+                            padding: 4px;
+                            margin-bottom: 15px;
+                            height:2.5rem;
+                            font-size: 16px;
+                            border: 1px solid #cccc;
+                            border-radius: 5px">
+
+                            <option value="cash">Cash</option>
+                            <option value="card">Card</option>
+                        </select>
+                        <hr>
+                        <div style="text-align: center;">
+                            <button type="submit" style="text-align: center;
+                                background-color: rgb(123, 5, 5);
+                                color: #fff;
+                                height:2.5rem;
+                                border: 1px solid rgb(123, 5, 5);
+                                border-radius:4px;
+                                padding-left:3px;
+                                padding-right:3px;
+                                padding: 11px;
+                                text-align: center;">Submit Payment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <script src="https://js.paystack.co/v1/inline.js"></script>
+
+        <script>
+            closePaymentModal()
+            // Show the payment modal
+            function showPaymentModal() {
+                document.getElementById('paymentModal').style.display = 'flex';
+            }
+
+            // Close the payment modal
+            function closePaymentModal() {
+                document.getElementById('paymentModal').style.display = 'none';
+            }
+        </script>
+    </div>
+    <div class="side-panel">
+        <button onclick="openDiscountOverlay()">Disc%</button>
+        <button styles="
+            
+            
+            "><a href="{% url 'beauty_sales_history' %}">Sales History</a></button>
+
+        <div class="userLoggedin">
+            <p>Welcome, <span id="usernameDisplay">{{user.first_name | title}} {{user.last_name | title}}</span></p>
+            <button class="logout-btn">Log Out</button>
+        </div>
+    </div>
+
+    <!-- Discount Overlay -->
+    <div class="discount-overlay" id="discountOverlay">
+        <div class="discount-container">
+            <button class="close-discount" onclick="closeDiscountOverlay()">X</button>
+            <h3>Apply Discount</h3>
+            <label for="discountPercentage">Discount Percentage:</label>
+            <input type="number" id="discountPercentage" placeholder="Enter % (e.g., 10)" />
+
+            <label for="discountType">Apply Discount To:</label>
+            <select id="discountType" onchange="toggleItemIndexInput()">
+                <option value="total">Total</option>
+                <option value="item">Specific Item</option>
+            </select>
+
+            <label for="itemIndex" id="itemIndexLabel" style="display: none;">Item Row (1, 2, ...):</label>
+            <input type="number" id="itemIndex" placeholder="Item Index" style="display: none;" />
+
+            <div class="discount-actions">
+                <button onclick="applyDiscount()">Apply</button>
+                <button onclick="closeDiscountOverlay()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <div class="search-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 2000; display: none; justify-content: center; align-items: center; overflow-y: auto;">
+        <!-- Notification for Add to Cart -->
+        <div id="cartNotification"
+            style="display: none; position: fixed; top: 10%; right: 10%; background: #4caf50; color: white; padding: 10px 20px; border-radius: 5px; z-index: 3000; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); transition: opacity 0.5s ease;">
+            Added to cart!
+        </div>
+    
+        <!-- Modal Content -->
+        <div class="containerSearchOverlay" style="background: white; width: 70%; max-width: 1200px; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);">
+            <!-- Header -->
+            <div class="flexSearch" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f5f5f5; border-bottom: 1px solid #ddd;width: 100%;">
+                <!-- Search Input -->
+                <div class="containerFlexSearch" style="flex: 1; display: flex; align-items: center; margin-top: 0;">
+                    <input type="text" id="SearchProduct" placeholder="Search item, barcode, description..." name="Search"
+                        style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-right: 10px;" oninput="searchItems()" required>
+                    <button class="clearSeachInput" onclick="clearSearchInput()" style="background: transparent; border: none; color: #777; font-size: 18px; cursor: pointer;">&#x2715;</button>
+                </div>
+    
+                <!-- Close Button -->
+                <div class="flexClose" style="margin-left: 15px; cursor: pointer; color: #555; font-size: 24px;text-align: right;">&#x2715;</div>
+            </div>
+    
+            <!-- Table Container -->
+            <div class="containerSearchItem" style="padding: 15px;margin-top: 0 !important; overflow-y: auto; max-height: 500px;">
+                <table id="itemTable" class="display" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr class="TableRowcosmetic" style="background: #f5f5f5; text-align: left;">
+                            <th>Barcode</th>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Brand</th>
+                            <th>Category</th>
+                            <th>Size</th>
+                            <th>Price</th>
+                            <th>Selling Unit</th>
+                            <th>Qty/Buying Unit</th>
+                            <th>Date Added</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Items will be dynamically rendered here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+
+
+    <div class="refund-overlay" id="refundOverlay">
+        <div class="refund-container">
+            <h3>Process Refund</h3>
+
+            <label for="refundReason">Select Refund Reason:</label>
+            <select id="refundReason" onchange="handleRefundReasonChange()">
+                <option value="Changed their mind">Changed their mind</option>
+                <option value="Product defect">Product defect</option>
+                <option value="Wrong item delivered">Wrong item delivered</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label for="additionalReason" id="additionalReasonLabel" style="display: none;">Specify Reason:</label>
+            <textarea id="additionalReason" placeholder="Enter additional reason" style="display: none;"></textarea>
+
+            <div class="refund-actions">
+                <button onclick="processRefund()">Process Refund</button>
+                <button onclick="closeRefundOverlay()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script>
+    let totalAmount = 0;
+    let quantity = 1; // Default quantity
+    let activeField = "quantityInput"; // Default active field
+    let saleId = null; // Global variable to track the current sale ID
+    let CashierIdT = {{ request.user.id }}; // Hidden input for cashier ID
+
+    let mainCashier = "{{request.user.role}}";
+
+
+
+    // Example items stored in an array
+
+
+
+
+
+
+
+    const btnCloseSearch = document.querySelector(".flexClose")
+    const OpenSeachModal = document.querySelector(".btnOpenSearchModal")
+    const OverlaySearchContainer = document.querySelector(".search-overlay")
+    const containerSearchItems = document.querySelector(".containerSearchItem")
+    const ContainerDataItems = []
+
+
+    OpenSeachModal.addEventListener('click', function (e) {
+        OverlaySearchContainer.style.display = "flex"
+
+    })
+    btnCloseSearch.addEventListener('click', function (e) {
+        OverlaySearchContainer.style.display = "none"
+
+
+    })
+
+
+
+
+    document.getElementById('paymentForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('sale_id', saleId);
+        console.log(saleId)
+
+        if (formData.get('payment_method') === 'cash') {
+            makePayment(formData);
+            pay('Cash')
+        } else if (formData.get('payment_method') === 'card') {
+            makePayment(formData);
+            pay('Card')
+        }
+        closePaymentModal()
+
+    });
+
+    function getCSRFToken() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        return csrfToken;
+    }
+
+    function makePayment(formData) {
+        $.ajax({
+            url: '/cosmetic_store/make-payment/', // The backend endpoint for processing payment
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken() // Include CSRF token in the request headers
+            },
+            data: formData,
+            processData: false, // Prevent jQuery from automatically transforming the data
+            contentType: false, // Let the browser set the content type
+            success: function (data) {
+                if (data.status === 'success') {
+                    alert('Payment successful!');
+                    location.reload();
+                } else {
+                    alert('Payment failed!');
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred while processing the payment.');
+            }
+        });
+        closePaymentModal()
+    }
+
+    function payWithPaystack(formData) {
+        const handler = PaystackPop.setup({
+            key: 'your-public-key', // Replace with your Paystack public key
+            email: 'payer@example.com', // Replace with payer's email
+            amount: formData.get('amountInput') * 100, // Amount in kobo
+            currency: 'NGN',
+            callback: function (response) {
+                // Add the Paystack reference to formData
+                formData.append('payment_id', response.reference);
+
+                // Submit payment details to the server
+                makePayment(formData);
+            },
+            onClose: function () {
+                alert('Transaction cancelled');
+            },
+        });
+        handler.openIframe();
+    }
+
+    function addItem(itemName, itemPrice, itemID) {
+        const price = parseFloat(itemPrice); // Example fixed price per item
+        if (isNaN(price)) {
+            console.error(`Invalid price for item ${itemName}:`, itemPrice);
+            return; // Exit if the price is invalid
+        }
+        const tbody = document.getElementById('transactionBody');
+        const row = document.createElement('tr');
+        const itemTotal = quantity * price;
+        row.innerHTML = `<td>₦{itemID}</td><td>₦{quantity}</td><td>₦{itemName}</td><td> ₦{price.toFixed(2)}</td><td> ₦${itemTotal.toFixed(2)}</td>`;
+        tbody.appendChild(row);
+        totalAmount += itemTotal;
+        console.log(totalAmount)
+        document.getElementById('total2').innerText = totalAmount.toFixed(2);
+
+        // If this is the first item, create the sale
+        if (!saleId) {
+            const cashierId = document.getElementById('cashierId').value; // Hidden input for cashier ID
+
+            $.ajax({
+                url: '/cosmetic_store/create-sale/',
+                method: 'POST',
+                data: {
+                    cashier_id: cashierId,
+                    total_amount: totalAmount,
+                    csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                success: function (response) {
+                    saleId = response.sale_id; // Save the sale ID for subsequent items
+                    addSaleItem(itemID, itemName, price, quantity); // Add the first item after creating the sale
+                },
+                error: function () {
+                    alert('Failed to create sale.');
+                }
+            });
+        } else {
+            // Add the item to the existing sale
+            addSaleItem(itemID, itemName, price, quantity);
+        }
+
+        // Reset quantity to 1 after adding an item
+        quantity = 1;
+        document.getElementById('quantityInput').value = '';
+    }
+
+    function addSaleItem(itemID, itemName, price, quantity) {
+        $.ajax({
+            url: '/cosmetic_store/add-sale-item/',
+            method: 'POST',
+            data: {
+                sale_id: saleId,
+                product_id: itemID,
+                quantity: quantity,
+                price: price,
+                csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            success: function (response) {
+                saleItemId = response.sale_item_id
+                console.log(`Item added to sale: ${itemName} x${quantity}`);
+            },
+            error: function () {
+                console.log(saleId,
+                    itemID,
+                    quantity,
+                    price)
+                alert(`Failed to add item: ${itemName}`);
+            }
+        });
+    }
+
+
+    // Append number to the active field
+    function appendNumber(num) {
+        const input = document.getElementById(activeField);
+        input.value += num;
+
+        if (activeField === "quantityInput") {
+            quantity = parseInt(input.value) || 1;
+        }
+    }
+
+    // Clear the active field
+    function clearInput() {
+        const input = document.getElementById(activeField);
+        input.value = '';
+
+        if (activeField === "quantityInput") {
+            quantity = 1;
+        }
+    }
+
+    // Remove the last digit from the active field
+    function backspace() {
+        const input = document.getElementById(activeField);
+        input.value = input.value.slice(0, -1);
+
+        if (activeField === "quantityInput") {
+            quantity = parseInt(input.value) || 1;
+        }
+    }
+
+    // Update payment details as user types in the amount input field
+    function updatePayment() {
+        const paidAmount = parseFloat(document.getElementById('amountInput').value) || 0;
+        document.getElementById('amountPaid').innerText = paidAmount.toFixed(2);
+        const due = Math.max(totalAmount - paidAmount, 0);
+        document.getElementById('amountDue').innerText = due.toFixed(2);
+    }
+
+    // Set the active field to the quantity input
+    function focusQuantityInput() {
+        activeField = "quantityInput";
+    }
+
+    // Set the active field to the amount input
+    function focusAmountInput() {
+        activeField = "amountInput";
+    }
+
+
+    // Specify the payment method
+    function pay(method) {
+        const paidAmount = parseFloat(document.getElementById('amountInput').value) || 0; // Get the paid amount
+        const due = paidAmount - totalAmount; // Calculate the difference
+
+        const amountDueElement = document.getElementById('amountDue');
+        const amountPaidElement = document.getElementById('amountPaid');
+
+        // Update the amount paid and due
+        amountPaidElement.innerText = paidAmount.toFixed(2);
+        amountDueElement.innerText = due.toFixed(2);
+
+        // Update colors
+        if (due < 0) {
+            amountDueElement.style.color = "red"; // Customer owes you
+            alert(`The customer still owes $${Math.abs(due).toFixed(2)}.`);
+        } else if (due > 0) {
+            amountDueElement.style.color = "green"; // You owe the customer change
+            alert(`You owe the customer $${due.toFixed(2)} in change.`);
+        } else {
+            amountDueElement.style.color = "black"; // Exact payment
+            alert(`Payment is exact. Thank you for paying via ${method}!`);
+        }
+
+        if (due >= 0) {
+            // If the payment is complete or more, print the receipt and clear the transaction
+            $.ajax({
+                url: '/cosmetic_store/Pay-for-sale/', // The endpoint for completing the sale
+                type: 'POST', // HTTP method
+                data: {
+                    sale_id: saleId,
+                    csrfmiddlewaretoken: getCSRFToken(), // Include the CSRF token in the data
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        alert('Sale has been paid for.');
+                        // Optionally update the UI to reflect the completed status
+                    } else {
+                        console.log(saleId);
+                        if (!saleId) {
+                            response.message = "You have not selected any item!";
+                        }
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while completing the sale.');
+                }
+            });
+            printReceipt(paidAmount, due, method);
+            clearTransaction();
+            closePaymentModal()
+        }
+    }
+
+    // Function to print a receipt
+    function printReceipt(paidAmount, change, method) {
+        const tbody = document.getElementById('transactionBody');
+        const ReciptTotal = document.getElementById('total2').innerText
+        const rows = tbody.getElementsByTagName('tr');
+        document.querySelectorAll(".btnDecreaseQtyTable, .btnIncreaseQtyTable").forEach(button => {
+            button.classList.add("hide-buttons");
+        });
+        const receiptData = [];
+        const cashierIdT = document.getElementById('cashierId').value; // Hidden input for cashier ID
+
+
+        // Collect transaction detail
+        for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName('td');
+            receiptData.push({
+                quantity: cells[1].innerText,
+                description: cells[2].innerText,
+                price: cells[3].innerText,
+                total: cells[4].innerText,
+            });
+        }
+
+        // Generate receipt content
+        let receiptContent = `
+        <div id="reciptStyle"  style="text-align: center; font-family: Arial, sans-serif; margin: 20px;margin-left:0; margin-right:0; padding-left:0;padding-right:0;">
+            <h2 style =" margin-top: 8px;margin-bottom: 0; padding-bottom: 0;">Elegante Beauty Store</h2>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem";>No 1 Bria Street Ademola <br>Adetokunbo Crescent<br>Wuse 2 Abuja</p>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem";>07068686839</p>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem";>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+            <pstyle ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem";><strong>CHECK# 1000${saleId}</strong></p>
+            <hr>
+            <div style="border:1px solid black;
+            "></div>
+             <div style ="
+    display: flex;
+    justify-content: center;" >
+            <table style="width: 85%; text-align: left; margin-bottom: 20px;">
+                <thead>
+                    <tr style="
+                      font-size: 0.9rem;
+    font-weight: bolder;
+    color: black;">
+                        <th>QTY</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody style=" font-size: 0.7rem">
+    `;
+
+        // Add transaction rows to receipt
+        receiptData.forEach((item) => {
+            receiptContent += `
+            <tr>
+                <td>${item.quantity}</td>
+                <td>${item.description}</td>
+                <td>${item.price}</td>
+                <td>${item.total}</td>
+            </tr>
+        `;
+        });
+
+        // Add total, VAT, and payment info
+        receiptContent += `
+                </tbody>
+            </table>
+            </div>
+            <hr>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem;"><strong>TOTAL ₦: ${ReciptTotal}</strong></p>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem;">VAT 7.5%</p>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem;">Cashier#${CashierIdT}</p>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem;">You have been served by ${mainCashier}</p>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem;"><strong>Paid: ₦ ${paidAmount.toFixed(2)}</strong></p>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem;"><strong>Change: ₦ ${change.toFixed(2)}</strong></p>
+            <hr>
+            <p style ="padding: 0;
+    font-size: 12px;
+
+    margin: 0;
+    line-height: 1.2rem;">Powered by Digi02 Tech </p>
+        </div>
+    `;
+
+        // Display the receipt in a new window for printing
+        const receiptWindow = window.open("", "Receipt", "width=400,height=600");
+        receiptWindow.document.write(receiptContent);
+        receiptWindow.document.close();
+        receiptWindow.print();
+
+        // Remove the class to show buttons again
+
+    }
+
+    // Function to clear the transaction
+    function clearTransaction() {
+        saleId = null;
+
+        // Clear the transaction table
+        document.getElementById('transactionBody').innerHTML = '';
+
+        totalAmount = 0;
+        quantity = 0
+
+        // Update UI elements
+        document.getElementById('total2').innerText = totalAmount.toFixed(2);
+        document.getElementById('amountPaid').innerText = '0.00';
+        document.getElementById('amountDue').innerText = '0.00';
+
+        // Reset input fields
+        document.getElementById('amountInput').value = '';
+        document.getElementById('quantityInput').value = '';
+
+        // Reset colors
+        document.getElementById('amountDue').style.color = 'black';
+
+
+    }
+
+
+    // Refund placeholder
+    function refund() {
+        alert('Refund feature is not implemented yet.');
+    }
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+    // Clear all transactions
+    function clearTransaction() {
+
+        // Clear the transaction table
+        document.getElementById('transactionBody').innerHTML = '';
+        saleId = null
+        quantity = 0
+        totalAmount = 0;
+
+        // Update UI elements
+        document.getElementById('total2').innerText = totalAmount.toFixed(2);
+        document.getElementById('amountPaid').innerText = '0.00';
+        document.getElementById('amountDue').innerText = '0.00';
+
+        // Reset input fields
+        document.getElementById('amountInput').value = '';
+        document.getElementById('quantityInput').value = '';
+
+        // Reset colors
+        document.getElementById('amountDue').style.color = 'black';
+    }
+
+
+    // Open the discount overlay
+    function openDiscountOverlay() {
+        document.getElementById('discountOverlay').style.display = 'flex';
+    }
+
+    // Close the discount overlay
+    function closeDiscountOverlay() {
+        document.getElementById('discountOverlay').style.display = 'none';
+        document.getElementById('discountPercentage').value = '';
+        document.getElementById('discountType').value = 'total';
+        document.getElementById('itemIndex').style.display = 'none';
+        document.getElementById('itemIndexLabel').style.display = 'none';
+    }
+
+    // Show the item index input when "Specific Item" is selected
+    document.getElementById('discountType').addEventListener('change', function () {
+        const itemIndexInput = document.getElementById('itemIndex');
+        const itemIndexLabel = document.getElementById('itemIndexLabel');
+        if (this.value === 'item') {
+            itemIndexInput.style.display = 'block';
+            itemIndexLabel.style.display = 'block';
+        } else {
+            itemIndexInput.style.display = 'none';
+            itemIndexLabel.style.display = 'none';
+        }
+    });
+
+    function applyDiscount() {
+        const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
+        const discountType = document.getElementById('discountType').value;
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        if (discountType === 'total') {
+            // Apply discount to the total
+            const discountAmount = (totalAmount * discountPercentage) / 100;
+            totalAmount -= discountAmount;
+            document.getElementById('total').innerText = totalAmount.toFixed(2);
+            console.log('asssa')
+            // Send AJAX request to create SaleDiscount
+            $.ajax({
+                url: '/cosmetic_store/apply-sale-discount/',
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                data: {
+                    cashier_id: 1,  // Replace with actual cashier ID
+                    sale_id: 1,     // Replace with actual sale ID
+                    proposed_discount: discountAmount
+                },
+                success: function (response) {
+                    alert(response.message);
+                },
+                error: function () {
+                    alert('Failed to apply discount.');
+                }
+            });
+
+        } else if (discountType === 'item') {
+            // Apply discount to a specific item
+            const itemIndex = parseInt(document.getElementById('itemIndex').value) - 1; // Convert 1-based index to 0-based
+            const tbody = document.getElementById('transactionBody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            if (itemIndex >= 0 && itemIndex < rows.length) {
+                const cells = rows[itemIndex].getElementsByTagName('td');
+                const itemTotal = parseFloat(cells[3].innerText.replace('₦', ''));
+                const discountAmount = (itemTotal * discountPercentage) / 100;
+                const newTotal = itemTotal - discountAmount;
+                cells[3].innerText = `₦${newTotal.toFixed(2)}`;
+
+                // Update the grand total
+                totalAmount -= discountAmount;
+                document.getElementById('total').innerText = totalAmount.toFixed(2);
+
+                // Send AJAX request to create SaleItemDiscount
+                $.ajax({
+                    url: '/cosmetic_store/apply-sale-item-discount/',
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    data: {
+                        cashier_id: 1,       // Replace with actual cashier ID
+                        sale_item_id: 1,    // Replace with actual sale item ID
+                        proposed_discount: discountAmount
+                    },
+                    success: function (response) {
+                        alert(response.message);
+                    },
+                    error: function () {
+                        alert('Failed to apply item discount.');
+                    }
+                });
+
+            } else {
+                alert('Invalid item index.');
+            }
+        }
+
+        closeDiscountOverlay();
+    }
+
+    // Open the refund overlay
+    function openRefundOverlay() {
+        document.getElementById('refundOverlay').style.display = 'flex';
+    }
+
+    // Close the refund overlay
+    function closeRefundOverlay() {
+        document.getElementById('refundOverlay').style.display = 'none';
+        document.getElementById('refundReason').value = 'Changed their mind'; // Reset dropdown
+        document.getElementById('additionalReason').style.display = 'none';
+        document.getElementById('additionalReasonLabel').style.display = 'none';
+        document.getElementById('additionalReason').value = ''; // Clear text area
+    }
+
+    // Handle changes in the refund reason dropdown
+    function handleRefundReasonChange() {
+        const refundReason = document.getElementById('refundReason').value;
+        const additionalReasonField = document.getElementById('additionalReason');
+        const additionalReasonLabel = document.getElementById('additionalReasonLabel');
+
+        if (refundReason === 'Other') {
+            additionalReasonField.style.display = 'block';
+            additionalReasonLabel.style.display = 'block';
+        } else {
+            additionalReasonField.style.display = 'none';
+            additionalReasonLabel.style.display = 'none';
+        }
+    }
+
+    // Process the refund
+    function processRefund() {
+        const refundReason = document.getElementById('refundReason').value;
+        const additionalReason = document.getElementById('additionalReason').value;
+
+        // Combine the refund reason and additional reason
+        let fullReason = refundReason;
+        if (refundReason === 'Other' && additionalReason) {
+            fullReason = `Other: ${additionalReason}`;
+        }
+
+        // Show a confirmation (you could integrate this with a backend for tracking)
+        alert(`Refund processed.\nReason: ${fullReason}`);
+
+        // Clear transaction data
+        clearTransaction();
+
+        // Close the overlay
+        closeRefundOverlay();
+    }
+
+
+    // Placeholder functions for menu buttons
+    // Open the discount overlay
+    function openDiscountOverlay() {
+        document.getElementById('discountOverlay').style.display = 'flex';
+    }
+
+    // Close the discount overlay
+    function closeDiscountOverlay() {
+        document.getElementById('discountOverlay').style.display = 'none';
+        document.getElementById('discountPercentage').value = '';
+        document.getElementById('itemIndex').value = '';
+        document.getElementById('itemIndex').style.display = 'none';
+        document.getElementById('itemIndexLabel').style.display = 'none';
+    }
+
+    // Toggle item index input for specific item discounts
+    function toggleItemIndexInput() {
+        const discountType = document.getElementById('discountType').value;
+        const itemIndexField = document.getElementById('itemIndex');
+        const itemIndexLabel = document.getElementById('itemIndexLabel');
+
+        if (discountType === 'item') {
+            itemIndexField.style.display = 'block';
+            itemIndexLabel.style.display = 'block';
+        } else {
+            itemIndexField.style.display = 'none';
+            itemIndexLabel.style.display = 'none';
+        }
+    }
+
+    // Apply discount
+    function applyDiscount() {
+        const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
+        const discountType = document.getElementById('discountType').value;
+
+        if (discountType === 'total') {
+            // Apply discount to the total
+            const discountAmount = (totalAmount * discountPercentage) / 100;
+            totalAmount -= discountAmount;
+            document.getElementById('total').innerText = totalAmount.toFixed(2);
+
+            // AJAX call to create SaleDiscount
+
+            const cashierId = document.getElementById('cashierId').value; // Hidden input for cashier ID
+
+            $.ajax({
+                url: '/cosmetic_store/create-sale-discount/',
+                method: 'POST',
+                data: {
+                    sale_id: saleId,
+                    proposed_discount: discountAmount,
+                    csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                success: function (response) {
+                    alert(response.message);
+                },
+                error: function () {
+                    alert('Failed to create sale discount.');
+                }
+            });
+
+            alert(`Discount of ${discountPercentage}% applied to total. New Total: ₦${totalAmount.toFixed(2)}`);
+        } else if (discountType === 'item') {
+            // Apply discount to a specific item
+            const itemIndex = parseInt(document.getElementById('itemIndex').value) - 1;
+            const tbody = document.getElementById('transactionBody');
+            const rows = tbody.getElementsByTagName('tr');
+
+            if (itemIndex >= 0 && itemIndex < rows.length) {
+                const cells = rows[itemIndex].getElementsByTagName('td');
+                const itemTotal = parseFloat(cells[3].innerText.replace('₦', ''));
+                const discountAmount = (itemTotal * discountPercentage) / 100;
+                const newTotal = itemTotal - discountAmount;
+                cells[3].innerText = `₦${newTotal.toFixed(2)}`;
+
+                // Update the grand total
+                totalAmount -= discountAmount;
+                document.getElementById('total').innerText = totalAmount.toFixed(2);
+
+                // AJAX call to create SaleItemDiscount
+                const saleItemId = rows[itemIndex].dataset.saleItemId; // Assume each row has a data attribute for sale item ID
+                const cashierId = document.getElementById('cashierId').value; // Hidden input for cashier ID
+
+                $.ajax({
+                    url: '/cosmetic_store/apply-sale-item-discount/',
+                    method: 'POST',
+                    data: {
+                        sale_item_id: saleItemId,
+                        proposed_discount: discountAmount,
+                        csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    success: function (response) {
+                        alert(response.message);
+                    },
+                    error: function () {
+                        alert('Failed to create sale item discount.');
+                    }
+                });
+
+                alert(`Discount of ${discountPercentage}% applied to item. New Item Total: ₦${newTotal.toFixed(2)}`);
+            } else {
+                alert('Invalid item index.');
+            }
+        }
+
+        closeDiscountOverlay();
+    }
+
+    let heldTransactions = []; // Array to store held transactions
+
+    // Hold the current transaction
+    function holdTransaction() {
+        const tbody = document.getElementById("transactionBody");
+        const rows = tbody.getElementsByTagName("tr");
+        const currentTransaction = [];
+
+        // Store each row in the held transaction
+        for (let row of rows) {
+            const cells = row.getElementsByTagName("td");
+            currentTransaction.push({
+                quantity: cells[0].innerText,
+                description: cells[1].innerText,
+                price: cells[2].innerText,
+                total: cells[3].innerText,
+            });
+        }
+
+        heldTransactions.push(currentTransaction); // Save the current transaction
+        alert("Transaction held successfully!");
+        clearTransaction(); // Clear the current transaction
+    }
+
+    // Recall a held transaction
+    function recallTransaction() {
+        if (heldTransactions.length === 0) {
+            alert("No held transactions to recall.");
+            return;
+        }
+
+        const recalledTransaction = heldTransactions.pop(); // Get the most recent held transaction
+        const tbody = document.getElementById("transactionBody");
+
+        for (let item of recalledTransaction) {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td>${item.quantity}</td>
+            <td>${item.description}</td>
+            <td>${item.price}</td>
+            <td>${item.total}</td>
+        `;
+            tbody.appendChild(row);
+        }
+
+        alert("Transaction recalled successfully!");
+    }
+    // Set custom price for the last added item
+
+
+
+    function completeSale() {
+        $.ajax({
+            url: '/cosmetic_store/complete-sale/', // The endpoint for completing the sale
+            type: 'POST', // HTTP method
+            data: {
+                sale_id: saleId,
+                csrfmiddlewaretoken: getCSRFToken(), // Include the CSRF token in the data
+            },
+            success: function (response) {
+                if (response.status === 'success') {
+                    alert('Sale has been marked as completed, you can now make payment.');
+                    // Optionally update the UI to reflect the completed status
+                } else {
+                    console.log(saleId);
+                    if (!saleId) {
+                        response.message = "You have not selected any item!";
+                    }
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred while completing the sale.');
+            }
+        });
+    }
+
+    // Unified items array
+    const items = [
+
+    ];
+
+    $.ajax({
+        url: '/cosmetic_store/api/inventory/', // Adjust URL to your API endpoint
+        method: 'GET',
+        dataType: 'json',
+        success: function (response) {
+            const items = response.data;
+            renderTable(items);
+        },
+        error: function () {
+            alert('Failed to fetch items.');
+        }
+    });
+
+    function showNotification(message = "Added to cart!") {
+        const notification = document.getElementById("cartNotification");
+        notification.innerText = message; // Set the notification text
+        notification.style.display = "block"; // Make it visible
+        notification.style.opacity = "1"; // Ensure full opacity
+
+        // Fade out after 2 seconds
+        setTimeout(() => {
+            notification.style.opacity = "0"; // Gradually fade out
+            setTimeout(() => {
+                notification.style.display = "none"; // Hide completely after fade out
+            }, 500); // Match the CSS transition duration
+        }, 2000); // Show for 2 seconds
+    }
+
+    // Unified cart array
+    const cart = [];
+    let totalAmount2 = 0;
+
+    function renderTable(data) {
+    const table = $('#itemTable').DataTable(); // Initialize or retrieve the existing DataTable instance
+
+    // Clear the table data
+    table.clear();
+
+    // Add new data
+    data.forEach(item => {
+    table.row.add([
+        item.barcode,
+        item.code,
+        item.name,
+        item.brand,
+        item.category.name,
+        item.size,
+        `₦${item.price.toFixed(2)}`,
+        item.selling_unit,
+        item.qty_per_buying_unit,
+        new Date(item.date_added).toLocaleDateString(),
+        `<button class='AddTOCartBtnSearch' onclick='addToCart("${item.barcode.replace(/"/g, "&quot;").replace(/'/g, "&#39;")}", ${item.id}, "${item.name.replace(/"/g, "&quot;").replace(/'/g, "&#39;")}", ${item.price})'>Add to Cart</button>`
+    ]);
+});
+
+    // Redraw the DataTable with the new data
+    table.draw();
+}
+
+    // Function to handle adding items to the cart
+    function addToCart(barcode, itemID, itemName, price) {
+        console.log(barcode, itemID, itemName, price)
+        // Find the item in the items array using its barcode
+        $.ajax({
+            url: '/cosmetic_store/api/inventory/', // Adjust URL to your API endpoint
+            method: 'GET',
+            dataType: 'json',
+            success: function (response) {
+                const items = response.data;
+                const item = items.find(i => i.barcode === barcode);
+                if (!item) {
+                    alert("Item not found!");
+                    return;
+                }
+
+                const numericPrice = parseFloat(price); // Convert price to number
+                if (isNaN(numericPrice)) {
+                    console.error(`Invalid price for item: ${itemName}, price: ${price}`);
+                    return;
+                }
+
+                // Check if the item is already in the cart
+                const existingItem = cart.find(i => i.barcode === barcode);
+                if (existingItem) {
+                    // If item exists, increase its quantity
+                    existingItem.quantity += 1;
+                    addItem(itemName, numericPrice, itemID)
+                    showNotification(`${itemName} added to cart!`);
+
+                } else {
+                    // If item doesn't exist, add it to the cart with quantity = 1
+                    cart.push({ ...item, quantity: 1 });
+                    addItem(itemName, numericPrice, itemID)
+                    showNotification(`${itemName} added to cart!`);
+                }
+                // Re-render the cart
+                renderCart();
+            },
+            error: function () {
+                alert('Failed to fetch items.');
+            }
+        });
+    }
+
+    // Function to render the cart
+    function renderCart() {
+        const tbody = document.getElementById("transactionBody");
+        tbody.innerHTML = ""; // Clear the cart before rendering
+
+        // Reset total amount
+        totalAmount2 = 0;
+
+        cart.forEach((item, index) => {
+            const price = parseFloat(item.price);
+            const itemTotal = item.quantity * price;
+            totalAmount2 += itemTotal;
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td>${item.barcode}</td>
+            <td>
+                <button class="btnDecreaseQtyTable" data-index="${index} data-id = "${item.id}">-</button>
+                ${item.quantity}
+                <button class="btnIncreaseQtyTable" data-index="${index}" data-id = "${item.id}">+</button>
+            </td>
+            <td>${item.name}</td>
+            <td>₦${price.toFixed(2)}</td>
+            <td>₦${itemTotal.toFixed(2)}</td>
+        `;
+            tbody.appendChild(row);
+        });
+
+        // Update the total in the "Totals" section
+        document.getElementById("total2").innerText = totalAmount2.toFixed(2);
+
+        // Add event listeners for the buttons
+        document.querySelectorAll(".btnIncreaseQtyTable").forEach(button => {
+            button.addEventListener("click", increaseQuantity);
+        });
+
+        document.querySelectorAll(".btnDecreaseQtyTable").forEach(button => {
+            button.addEventListener("click", decreaseQuantity);
+        });
+    }
+
+    // Function to increase quantity
+    function increaseQuantity(event) {
+        const index = event.target.dataset.index;
+        
+        const id = event.target.dataset.id;
+        console.log(id)
+        cart[index].quantity += 1; // Increase the quantity
+        $.ajax({
+            url: '/cosmetic_store/quantity-increase/' + id + "/", // Adjust URL to your API endpoint
+            method: 'POST',
+            data: {
+                item_id: cart[index].id,
+                csrfmiddlewaretoken: getCSRFToken()
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    renderCart(); // Re-render the cart
+                } else {
+                    alert('Failed to increase quantity.');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred while increasing the quantity.');
+            }
+        });
+    }
+
+    // Function to decrease quantity
+    function decreaseQuantity(event) {
+        const index = event.target.dataset.index;
+        const id = event.target.dataset.id;
+
+        if (cart[index].quantity > 1) {
+            cart[index].quantity -= 1; // Decrease the quantity
+            $.ajax({
+                url: '/cosmetic_store/quantity-decrease/' + id + "/", // Adjust URL to your API endpoint
+                method: 'POST',
+                data: {
+                    item_id: cart[index].id,
+                    csrfmiddlewaretoken: getCSRFToken()
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        renderCart(); // Re-render the cart
+                    } else {
+                        alert('Failed to decrease quantity.');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while decreasing the quantity.');
+                }
+            });
+        } else {
+            cart.splice(index, 1); // Remove item from cart if quantity is 0
+        }
+    }
+
+
+    // Function to search items in the modal
+    function searchItems() {
+        $.ajax({
+            url: '/cosmetic_store/api/inventory/', // Adjust URL to your API endpoint
+            method: 'GET',
+            dataType: 'json',
+            success: function (response) {
+                const items = response.data; // Get the items from the response
+                const query = document.getElementById("SearchProduct").value.toLowerCase();
+
+                // If input is empty, show all items
+                if (query === "") {
+                    renderTable(items); // Reset the table to show all items
+                    return;
+                }
+
+                // Filter items dynamically
+                const filteredItems = items.filter(item =>
+                    item.barcode.toLowerCase().includes(query) ||
+                    item.name.toLowerCase().includes(query) ||
+                    item.category.name.toLowerCase().includes(query)
+                );
+
+                // Handle exact match
+                const exactMatch = items.find(item =>
+                    item.barcode.toLowerCase() === query ||
+                    item.name.toLowerCase() === query ||
+                    item.category.name.toLowerCase() === query
+                );
+
+                if (exactMatch) {
+                    addToCart(exactMatch.barcode, exactMatch.id, exactMatch.name, exactMatch.price);
+                    showNotification(`${exactMatch.name} added to cart!`);
+                    document.getElementById("SearchProduct").value = ""; // Clear search field
+                } else if (filteredItems.length > 0) {
+                    renderTable(filteredItems);
+                } else {
+                    document.getElementById("resultsTable").innerHTML = "<tr><td colspan='5'>No items found.</td></tr>";
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred while searching for items.');
+            }
+        });
+    }
+
+    function clearSearchInput() {
+        const searchInput = document.getElementById("SearchProduct");
+        searchInput.value = ""; // Clear the input field
+        renderTable(items); // Reset to show all items
+        console.log("Search input cleared.");
+    }
+
+    // Functions to handle modal visibility
+    function openSearch() {
+        document.querySelector(".search-overlay").style.display = "flex";
+        const searchInput = document.getElementById("SearchProduct");
+        searchInput.focus();
+        $.ajax({
+            url: '/cosmetic_store/api/inventory/', // Adjust URL to your API endpoint
+            method: 'GET',
+            dataType: 'json',
+            success: function (response) {
+                const items = response.data;
+                renderTable(items);
+            },
+            error: function () {
+                alert('Failed to fetch items.');
+            }
+        });
+
+    }
+    $(document).ready(function () {
+        $('#itemTable').DataTable({
+            responsive: true,
+            paging: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            lengthChange: true,
+            language: {
+                search: "Filter:",
+                lengthMenu: "Display _MENU_ records per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ records"
+            }
+        });
+
+    });
+
+    function closeSearch() {
+        document.querySelector(".search-overlay").style.display = "none";
+    }
+
+    // Event listeners
+    document.querySelector(".clearSeachInput").addEventListener("click", clearSearchInput);
+
+    document.querySelector(".btnOpenSearchModal").addEventListener("click", openSearch);
+    document.getElementById("SearchProduct").addEventListener("input", searchItems);
+
+
+
+
+
+</script>
+{% endblock main_content %}

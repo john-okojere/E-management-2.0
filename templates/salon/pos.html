@@ -1,0 +1,1526 @@
+    {% extends "salon/base.html" %}
+{% load static %}
+
+{% block main_content %}
+<style>
+    /* Modal background */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Modal content */
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 300px;
+    text-align: center;
+    position: relative;
+}
+
+/* Close button */
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+a{
+    text-decoration: none;
+    color: black;
+}
+.btnSalon{
+    border:none;
+    margin-right:10px;
+    height:2rem;
+    flex-shrink:0;
+    background-color:white;
+    border: 1px solid #cccc;
+    width:6rem
+}
+::-webkit-scrollbar {
+    /* width: 12px; */
+    height: 2px; /* Height for horizontal scrollbar */
+}
+::-webkit-scrollbar-thumb {
+    background:#ff8585; /* Handle color */
+    border-radius: 6px;
+    width:1px;
+}
+#menuItemsContainer{
+    margin-top:2rem;
+    overflow-x:scroll;
+    display:grid;
+    grid-template-columns:5rem 5rem 5rem 5rem;
+    grid-template-rows:35px 35px 35px 35px;
+    column-gap: 2rem; /* Horizontal gap */
+    height:20rem;
+
+}
+.StyleMenuSalon{
+    /* border:1px solid red; */
+    display:flex;
+    margin-right:1rem;
+    /* padding:20px; */
+    /* height:4rem; */
+    margin-bottom:0rem;
+    margin-top:0rem;
+    
+}
+.nameItemSalon{
+    padding:0;
+    margin:0;
+}
+.StyleMenuSalon p{
+    padding:0;
+    font-size:11px;
+    padding:0;
+    margin:0;
+    color:#656565;
+
+    color:black;
+    margin:0;
+}
+.StyleMenuSalon button{
+    border:none;
+    /* width:4px; */
+}
+.nameItemSalon{
+    border:1px solid #980000 ;
+    padding:3px;
+}
+
+.active-tab {
+    background-color: #d00000 !important; /* Blue background for active tab */
+    color: white; /* White text */
+    border-radius: 5px; /* Optional: Rounded corners */
+   
+}
+
+a{
+    color: #920e0eb1;
+}
+
+a:hover{
+    background-color: rgb(123, 5, 5);
+    color: white;
+}
+.nameItemspa{
+    border:none !important;
+    color:black !important;
+} 
+
+</style>
+
+<form method="post">
+    {% csrf_token %}
+</form>
+<input type="hidden" id="cashierId" value="{{ request.user.staff_profile.id }}">
+    <div class="container">
+    <link rel="stylesheet" href="{% static 'arcade/css/styles.css' %}">
+        <div class="left-panel">
+            <div class="transaction-container">
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Quantity</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionBody">
+                        <!-- Dynamic rows will go here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="controls" styles="background-color:white;">
+                <button onclick="completeSale()">Complete</button>
+                <button onclick="holdTransaction()">Hold</button>
+                <button onclick="recallTransaction()">Recall</button>
+                <button onclick="openRefundOverlay()">Refund</button>
+                <button onclick="clearTransaction()">Clear</button>
+            </div>
+            
+           
+            <div class="totals">
+                <div>Total:  ₦<span id="total2">0.00</span></div>
+                <div>Amount Paid:  ₦<span id="amountPaid">0.00</span></div>
+                <div>Amount Due:  ₦<span id="amountDue">0.00</span></div>
+            </div>
+        </div>
+        
+        <div class="right-panel" style="height:30rem;">
+
+            <div >
+                <div id="menuCategories" style=" display:flex;  border:1px solid #cccccc; width:24rem; overflow-y: scroll; overflow-x:scroll;
+        
+                ;">
+                    {% for category in categories %}
+                    <button class="btnSalon" data-category="{{category.name}}">{{category.name}}</button>
+                    {% endfor %}
+            </div>
+            
+                <!-- Container for displaying menu items -->
+                <div id="menuItemsContainer">
+
+                    
+                </div>
+            
+                <!-- Container for displaying cart -->
+                <div class="containerDisplayItemSalon">
+                    <div class="payment-methods">
+                        <button onclick="showPaymentModal()" class="btnActionKeys">Make Payment</button>
+                    </div>
+                </div>
+            </div>
+            <div id="paymentModal" class="modal">
+                <div class="modal-content">
+                    <button class="close-discount" onclick="closePaymentModal()">X</button>
+                    <h2>Make a Payment</h2>
+                    <hr>
+                    <form id="paymentForm" style="text-align: left;">
+                        <input type="hidden" name="sale_id">
+                        <label for="paidBy">Payer's Name:</label>
+                        <input type="text" id="paidBy" name="paid_by" required style="width: 100%;
+                        padding: 1px;
+                        margin-bottom: 4px;
+                        font-size: 16px;
+                        height:2.5rem;
+                        border: 1px solid #cccc;
+                        border-radius: 5px">
+            
+                        <label for="amount">Amount:</label>
+                        <input type="number" id="amountInput" name="amount" onfocus="focusAmountInput()" oninput="updatePayment()" required style="width: 100%;
+                        padding: 1px;
+                        margin-bottom: 10px;
+                        font-size: 16px;
+                        height:2.5rem;
+                        border: 1px solid #cccc;
+                        border-radius: 5px">
+            
+                        <label for="paymentMethod">Payment Method:</label>
+                        <select id="paymentMethod" name="payment_method" style="width: 100%;
+                        padding: 4px;
+                        margin-bottom: 15px;
+                        height:2.5rem;
+                        font-size: 16px;
+                        border: 1px solid #cccc;
+                        border-radius: 5px">
+
+                            <option value="cash">Cash</option>
+                            <option value="transfer">Bank Transfer</option>
+                            <option value="card">Card</option>
+                        </select>
+                        <hr>
+                        <div style="text-align: center;">
+                            <button class="btn-btn-submitCashierPayment " 
+                            type="submit" id="printReceiptButton" style="text-align: center; background-color: rgb(123, 5, 5);
+                            color: #fff;
+                            height:2.5rem;
+                            border: 1px solid rgb(123, 5, 5);
+                            border-radius:4px;
+                            padding-left:3px;
+                            padding-right:3px;
+                            padding: 11px;
+                            text-align: center;">Submit Payment</button>
+                        </div>
+                    </form>
+                </div>
+        </div>
+            
+
+            
+            
+
+         
+        <script src="https://js.paystack.co/v1/inline.js"></script>
+
+        <script>
+              closePaymentModal()
+            // Show the payment modal
+            function showPaymentModal() {
+                document.getElementById('paymentModal').style.display = 'flex';
+            }
+
+            // Close the payment modal
+            function closePaymentModal() {
+                document.getElementById('paymentModal').style.display = 'none';
+            }
+         
+        </script>
+        </div>
+        <div class="side-panel">
+            <button onclick="openDiscountOverlay()">Disc%</button>
+            <button><a href="{% url 'salon_sales_history' %}">Sales History</a></button>
+
+            <div class="userLoggedin">
+                <p>Welcome, <span id="usernameDisplay">{{user.first_name | title}} {{user.last_name | title}}</span></p>
+                <button class="logout-btn">Log Out</button>
+            </div>
+        </div>
+
+<!-- Discount Overlay -->
+<div class="discount-overlay" id="discountOverlay">
+    <div class="discount-container">
+        <button class="close-discount" onclick="closeDiscountOverlay()">X</button>
+        <h3>Apply Discount</h3>
+        <label for="discountPercentage">Discount Percentage:</label>
+        <input type="number" id="discountPercentage" placeholder="Enter % (e.g., 10)" />
+        
+        <label for="discountType">Apply Discount To:</label>
+        <select id="discountType" onchange="toggleItemIndexInput()">
+            <option value="total">Total</option>
+            <option value="item">Specific Item</option>
+        </select>
+
+        <label for="itemIndex" id="itemIndexLabel" style="display: none;">Item Row (1, 2, ...):</label>
+        <input type="number" id="itemIndex" placeholder="Item Index" style="display: none;" />
+
+        <div class="discount-actions">
+            <button onclick="applyDiscount()">Apply</button>
+            <button onclick="closeDiscountOverlay()">Cancel</button>
+        </div>
+    </div>
+</div>
+<div class="search-overlay" style="">
+    <div class="containerSearchOverlay">
+        <div class="flexSearch">
+            <div class="containerFlexSearch">
+                <input type="text"  id="SearchProduct" placeholder="Search item,barcode,discription...." name="Search" onfocus="" oninput="" required>
+        
+            </div>
+            
+        
+            <div class="flexClose">
+                x
+            </div>
+        
+        </div>
+
+      
+
+        
+   
+    </div>
+
+</div>
+       
+
+        <div class="refund-overlay" id="refundOverlay">
+            <div class="refund-container">
+                <h3>Process Refund</h3>
+                
+                <label for="refundReason">Select Refund Reason:</label>
+                <select id="refundReason" onchange="handleRefundReasonChange()">
+                    <option value="Changed their mind">Changed their mind</option>
+                    <option value="Product defect">Product defect</option>
+                    <option value="Wrong item delivered">Wrong item delivered</option>
+                    <option value="Other">Other</option>
+                </select>
+        
+                <label for="additionalReason" id="additionalReasonLabel" style="display: none;">Specify Reason:</label>
+                <textarea id="additionalReason" placeholder="Enter additional reason" style="display: none;"></textarea>
+        
+                <div class="refund-actions">
+                    <button onclick="processRefund()">Process Refund</button>
+                    <button onclick="closeRefundOverlay()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+
+        
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script>
+        let totalAmount = 0;
+        let quantity = 1; // Default quantity
+        let activeField = "quantityInput"; // Default active field
+        let saleId = null; // Global variable to track the current sale ID
+
+
+// Example items stored in an array
+
+
+
+
+        document.getElementById('paymentForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            formData.append('sale_id', saleId);
+            console.log(saleId)
+            
+            if(formData.get('payment_method') === 'cash'){
+                makePayment(formData);
+                pay('Cash')
+            }else if(formData.get('payment_method') === 'card'){
+                makePayment(formData);
+                pay('Card')
+            }
+        });
+
+
+        const btnCloseSearch = document.querySelector(".flexClose")
+        const OpenSeachModal = document.querySelector(".btnOpenSearchModal")
+        const OverlaySearchContainer = document.querySelector(".search-overlay")
+        const containerSearchItems = document.querySelector(".containerSearchItem")
+        const ContainerDataItems = []
+
+
+        function getCSRFToken() {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            return csrfToken;
+        }
+
+        function makePayment(formData) {
+            $.ajax({
+                url: '/salon/make-payment/', // The backend endpoint for processing payment
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken() // Include CSRF token in the request headers
+                },
+                data: formData,
+                processData: false, // Prevent jQuery from automatically transforming the data
+                contentType: false, // Let the browser set the content type
+                success: function (data) {
+                    if (data.status === 'success') {
+                        alert('Payment successful!');
+                        location.reload();
+                    } else {
+                        alert('Payment failed!');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while processing the payment.');
+                }
+            });
+        }
+
+    function payWithPaystack(formData) {
+        const handler = PaystackPop.setup({
+            key: 'your-public-key', // Replace with your Paystack public key
+            email: 'payer@example.com', // Replace with payer's email
+            amount: formData.get('amountInput') * 100, // Amount in kobo
+            currency: 'NGN',
+            callback: function (response) {
+                // Add the Paystack reference to formData
+                formData.append('payment_id', response.reference);
+
+                // Submit payment details to the server
+                makePayment(formData);
+            },
+            onClose: function () {
+                alert('Transaction cancelled');
+            },
+        });
+        handler.openIframe();
+    }
+
+function addItem(itemName, itemPrice, itemID) {
+    const price = itemPrice; // Example fixed price per item
+    const tbody = document.getElementById('transactionBody');
+    const row = document.createElement('tr');
+    const itemTotal = quantity * price;
+    console.log(price)
+    row.innerHTML = `<td>${itemID}</td><td>${quantity}</td><td>${itemName}</td><td> ₦${price.toFixed(2)}</td><td> ₦${itemTotal.toFixed(2)}</td>`;
+    tbody.appendChild(row);
+    totalAmount += itemTotal;
+    console.log(totalAmount)
+    document.getElementById('total2').innerText = totalAmount.toFixed(2);
+
+    // If this is the first item, create the sale
+    if (!saleId) {
+        const cashierId = document.getElementById('cashierId').value; // Hidden input for cashier ID
+
+        $.ajax({
+            url: '/salon/create-sale/',
+            method: 'POST',
+            data: {
+                cashier_id: cashierId,
+                total_amount: totalAmount,
+                csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            success: function(response) {
+                saleId = response.sale_id; // Save the sale ID for subsequent items
+                addSaleItem(itemID, itemName, price, quantity); // Add the first item after creating the sale
+            },
+            error: function() {
+                alert('Failed to create sale.');
+            }
+        });
+    } else {
+        // Add the item to the existing sale
+        addSaleItem(itemID, itemName, price, quantity);
+    }
+
+}
+
+function addSaleItem(itemID, itemName, price, quantity) {
+    $.ajax({
+        url: '/salon/add-sale-item/',
+        method: 'POST',
+        data: {
+            sale_id: saleId,
+            product_id: itemID,
+            quantity: quantity,
+            price: price,
+            csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        success: function(response) {
+            console.log(`Item added to sale: ${itemName} x${quantity}`);
+        },
+        error: function() {
+            console.log(saleId,
+            itemID,
+            quantity,
+            price)
+            alert(`Failed to add item: ${itemName}`);
+        }
+    });
+}
+
+
+// Append number to the active field
+function appendNumber(num) {
+    const input = document.getElementById(activeField);
+    input.value += num;
+
+    if (activeField === "quantityInput") {
+        quantity = parseInt(input.value) || 1;
+    }
+}
+
+// Clear the active field
+function clearInput() {
+    const input = document.getElementById(activeField);
+    input.value = '';
+
+    if (activeField === "quantityInput") {
+        quantity = 1;
+    }
+}
+
+// Remove the last digit from the active field
+function backspace() {
+    const input = document.getElementById(activeField);
+    input.value = input.value.slice(0, -1);
+
+    if (activeField === "quantityInput") {
+        quantity = parseInt(input.value) || 1;
+    }
+}
+
+// Update payment details as user types in the amount input field
+function updatePayment() {
+    const paidAmount = parseFloat(document.getElementById('amountInput').value) || 0;
+    document.getElementById('amountPaid').innerText = paidAmount.toFixed(2);
+    const due = Math.max(totalAmount - paidAmount, 0);
+    document.getElementById('amountDue').innerText = due.toFixed(2);
+}
+
+// Set the active field to the quantity input
+function focusQuantityInput() {
+    activeField = "quantityInput";
+}
+
+// Set the active field to the amount input
+function focusAmountInput() {
+    activeField = "amountInput";
+}
+
+
+// Specify the payment method
+function pay(method) {
+    const paidAmount = parseFloat(document.getElementById('amountInput').value) || 0; // Get the paid amount
+    const due = paidAmount - totalAmount; // Calculate the difference
+
+    const amountDueElement = document.getElementById('amountDue');
+    const amountPaidElement = document.getElementById('amountPaid');
+
+    // Update the amount paid and due
+    amountPaidElement.innerText = paidAmount.toFixed(2);
+    amountDueElement.innerText = due.toFixed(2);
+
+    // Update colors
+    if (due < 0) {
+        amountDueElement.style.color = "red"; // Customer owes you
+        alert(`The customer still owes $${Math.abs(due).toFixed(2)}.`);
+    } else if (due > 0) {
+        amountDueElement.style.color = "green"; // You owe the customer change
+        alert(`You owe the customer $${due.toFixed(2)} in change.`);
+    } else {
+        amountDueElement.style.color = "black"; // Exact payment
+        alert(`Payment is exact. Thank you for paying via ${method}!`);
+    }
+
+    if (due >= 0) {
+        // If the payment is complete or more, print the receipt and clear the transaction
+        $.ajax({
+            url: '/salon/Pay-for-sale/', // The endpoint for completing the sale
+            type: 'POST', // HTTP method
+            data: {
+                sale_id: saleId,
+                csrfmiddlewaretoken: getCSRFToken(), // Include the CSRF token in the data
+            },
+            success: function (response) {
+                if (response.status === 'success') {
+                    alert('Sale has been paid for.');
+                    // Optionally update the UI to reflect the completed status
+                } else {
+                    console.log(saleId);
+                    if (!saleId) {
+                        response.message = "You have not selected any item!";
+                    }
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred while completing the sale.');
+            }
+        });
+        printReceipt(paidAmount, due, method);
+        clearTransaction();
+        closePaymentModal()
+    }
+}
+
+// Function to print a receipt
+function printReceipt(paidAmount, change, method) {
+    const tbody = document.getElementById('transactionBody');
+    const rows = tbody.getElementsByTagName('tr');
+    const receiptData = [];
+
+    // Collect transaction details
+    for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        receiptData.push({
+            quantity: cells[0].innerText,
+            description: cells[1].innerText,
+            price: cells[2].innerText,
+            total: cells[3].innerText,
+        });
+    }
+
+    // Generate receipt content
+    let receiptContent = `
+        <div style="text-align: center; font-family: Arial, sans-serif; margin: 20px;">
+            <h2>Elegante Arcade</h2>
+            <p>No 1 Bria Street Ademola Adetokunbo Crescent<br>Wuse 2 Abuja</p>
+            <p>07068686839</p>
+            <p>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+            <p>CHECK# 100022</p>
+            <hr>
+            <table style="width: 100%; text-align: left; margin-bottom: 20px;">
+                <thead>
+                    <tr>
+                        <th>QTY</th>
+                        <th>Description</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    // Add transaction rows to receipt
+    receiptData.forEach((item) => {
+        receiptContent += `
+            <tr>
+                <td>${item.quantity}</td>
+                <td>${item.description}</td>
+                <td>${item.price}</td>
+                <td>${item.total}</td>
+            </tr>
+        `;
+    });
+
+    // Add total, VAT, and payment info
+    receiptContent += `
+                </tbody>
+            </table>
+            <hr>
+            <p><strong>TOTAL NGN: ${totalAmount.toFixed(2)}</strong></p>
+            <p>VAT 7.5%</p>
+            <p>Cashier# 1</p>
+            <p>You have been served by User</p>
+            <p><strong>Paid: NGN ${paidAmount.toFixed(2)}</strong></p>
+            <p><strong>Change: NGN ${change.toFixed(2)}</strong></p>
+            <hr>
+            <p>Powered by digi02.org</p>
+        </div>
+        
+    `;
+
+    // Display the receipt in a new window for printing
+    const receiptWindow = window.open("", "Receipt", "width=400,height=600");
+    receiptWindow.document.write(receiptContent);
+    receiptWindow.document.close();
+    receiptWindow.print();
+}
+
+// Function to clear the transaction
+function clearTransaction() {
+    document.getElementById('transactionBody').innerHTML = ''; // Clear table rows
+    totalAmount = 0;
+    document.getElementById('total').innerText = totalAmount.toFixed(2);
+    document.getElementById('amountPaid').innerText = '0.00';
+    document.getElementById('amountDue').innerText = '0.00';
+    document.getElementById('amountInput').value = '';
+    document.getElementById('amountDue').style.color = "black"; // Reset color
+}
+
+
+// Refund placeholder
+function refund() {
+    alert('Refund feature is not implemented yet.');
+}
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+// Clear all transactions
+function clearTransaction() {
+   saleId = null
+    document.getElementById('transactionBody').innerHTML = '';
+    totalAmount = 0;
+    document.getElementById('total').innerText = totalAmount.toFixed(2);
+    document.getElementById('amountPaid').innerText = '0.00';
+    document.getElementById('amountDue').innerText = '0.00';
+    document.getElementById('amountInput').value = '';
+}
+
+
+// Open the discount overlay
+function openDiscountOverlay() {
+    document.getElementById('discountOverlay').style.display = 'flex';
+}
+
+// Close the discount overlay
+function closeDiscountOverlay() {
+    document.getElementById('discountOverlay').style.display = 'none';
+    document.getElementById('discountPercentage').value = '';
+    document.getElementById('discountType').value = 'total';
+    document.getElementById('itemIndex').style.display = 'none';
+    document.getElementById('itemIndexLabel').style.display = 'none';
+}
+
+// Show the item index input when "Specific Item" is selected
+document.getElementById('discountType').addEventListener('change', function () {
+    const itemIndexInput = document.getElementById('itemIndex');
+    const itemIndexLabel = document.getElementById('itemIndexLabel');
+    if (this.value === 'item') {
+        itemIndexInput.style.display = 'block';
+        itemIndexLabel.style.display = 'block';
+    } else {
+        itemIndexInput.style.display = 'none';
+        itemIndexLabel.style.display = 'none';
+    }
+});
+
+function applyDiscount() {
+    const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
+    const discountType = document.getElementById('discountType').value;
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    if (discountType === 'total') {
+        // Apply discount to the total
+        const discountAmount = (totalAmount * discountPercentage) / 100;
+        totalAmount -= discountAmount;
+        document.getElementById('total').innerText = totalAmount.toFixed(2);
+        console.log('asssa')
+        // Send AJAX request to create SaleDiscount
+        $.ajax({
+            url: '/salon/apply-sale-discount/',
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+            data: {
+                cashier_id: 1,  // Replace with actual cashier ID
+                sale_id: 1,     // Replace with actual sale ID
+                proposed_discount: discountAmount
+            },
+            success: function (response) {
+                alert(response.message);
+            },
+            error: function () {
+                alert('Failed to apply discount.');
+            }
+        });
+
+    } else if (discountType === 'item') {
+        // Apply discount to a specific item
+        const itemIndex = parseInt(document.getElementById('itemIndex').value) - 1; // Convert 1-based index to 0-based
+        const tbody = document.getElementById('transactionBody');
+        const rows = tbody.getElementsByTagName('tr');
+
+        if (itemIndex >= 0 && itemIndex < rows.length) {
+            const cells = rows[itemIndex].getElementsByTagName('td');
+            const itemTotal = parseFloat(cells[3].innerText.replace('₦', ''));
+            const discountAmount = (itemTotal * discountPercentage) / 100;
+            const newTotal = itemTotal - discountAmount;
+            cells[3].innerText = `₦${newTotal.toFixed(2)}`;
+
+            // Update the grand total
+            totalAmount -= discountAmount;
+            document.getElementById('total').innerText = totalAmount.toFixed(2);
+
+            // Send AJAX request to create SaleItemDiscount
+            $.ajax({
+                url: '/salon/apply-sale-item-discount/',
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                data: {
+                    cashier_id: 1,       // Replace with actual cashier ID
+                    sale_item_id: 1,    // Replace with actual sale item ID
+                    proposed_discount: discountAmount
+                },
+                success: function (response) {
+                    alert(response.message);
+                },
+                error: function () {
+                    alert('Failed to apply item discount.');
+                }
+            });
+
+        } else {
+            alert('Invalid item index.');
+        }
+    }
+
+    closeDiscountOverlay();
+}
+
+// Open the refund overlay
+function openRefundOverlay() {
+    document.getElementById('refundOverlay').style.display = 'flex';
+}
+
+// Close the refund overlay
+function closeRefundOverlay() {
+    document.getElementById('refundOverlay').style.display = 'none';
+    document.getElementById('refundReason').value = 'Changed their mind'; // Reset dropdown
+    document.getElementById('additionalReason').style.display = 'none';
+    document.getElementById('additionalReasonLabel').style.display = 'none';
+    document.getElementById('additionalReason').value = ''; // Clear text area
+}
+
+// Handle changes in the refund reason dropdown
+function handleRefundReasonChange() {
+    const refundReason = document.getElementById('refundReason').value;
+    const additionalReasonField = document.getElementById('additionalReason');
+    const additionalReasonLabel = document.getElementById('additionalReasonLabel');
+
+    if (refundReason === 'Other') {
+        additionalReasonField.style.display = 'block';
+        additionalReasonLabel.style.display = 'block';
+    } else {
+        additionalReasonField.style.display = 'none';
+        additionalReasonLabel.style.display = 'none';
+    }
+}
+
+// Process the refund
+function processRefund() {
+    const refundReason = document.getElementById('refundReason').value;
+    const additionalReason = document.getElementById('additionalReason').value;
+
+    // Combine the refund reason and additional reason
+    let fullReason = refundReason;
+    if (refundReason === 'Other' && additionalReason) {
+        fullReason = `Other: ${additionalReason}`;
+    }
+
+    // Show a confirmation (you could integrate this with a backend for tracking)
+    alert(`Refund processed.\nReason: ${fullReason}`);
+
+    // Clear transaction data
+    clearTransaction();
+
+    // Close the overlay
+    closeRefundOverlay();
+}
+// Function to open the menu overlay
+function openMenu() {
+    document.getElementById('menuOverlay').style.display = 'flex';
+}
+
+// Function to close the menu overlay
+function closeMenu() {
+    document.getElementById('menuOverlay').style.display = 'none';
+}
+
+// Placeholder functions for menu buttons
+function previewOlderSales() {
+    alert("Preview Older Sales feature coming soon!");
+}
+
+function printLastReceipt() {
+    alert("Print Last Receipt feature coming soon!");
+}
+
+function applyDiscount() {
+    alert("Discount feature coming soon!");
+}
+
+function setPrice() {
+    alert("Set Price feature coming soon!");
+}
+
+function viewSalesHistory() {
+    alert("Sales History feature coming soon!");
+}
+
+function logout() {
+    alert("Log Out feature coming soon!");
+}
+
+function endOfDay() {
+    alert("End of Day feature coming soon!");
+}
+
+function goBack() {
+    closeMenu();
+}
+
+// Open the discount overlay
+function openDiscountOverlay() {
+    document.getElementById('discountOverlay').style.display = 'flex';
+}
+
+// Close the discount overlay
+function closeDiscountOverlay() {
+    document.getElementById('discountOverlay').style.display = 'none';
+    document.getElementById('discountPercentage').value = '';
+    document.getElementById('itemIndex').value = '';
+    document.getElementById('itemIndex').style.display = 'none';
+    document.getElementById('itemIndexLabel').style.display = 'none';
+}
+
+// Toggle item index input for specific item discounts
+function toggleItemIndexInput() {
+    const discountType = document.getElementById('discountType').value;
+    const itemIndexField = document.getElementById('itemIndex');
+    const itemIndexLabel = document.getElementById('itemIndexLabel');
+
+    if (discountType === 'item') {
+        itemIndexField.style.display = 'block';
+        itemIndexLabel.style.display = 'block';
+    } else {
+        itemIndexField.style.display = 'none';
+        itemIndexLabel.style.display = 'none';
+    }
+}
+
+// Apply discount
+function applyDiscount() {
+    const discountPercentage = parseFloat(document.getElementById('discountPercentage').value) || 0;
+    const discountType = document.getElementById('discountType').value;
+
+    if (discountType === 'total') {
+        // Apply discount to the total
+        const discountAmount = (totalAmount * discountPercentage) / 100;
+        totalAmount -= discountAmount;
+        document.getElementById('total').innerText = totalAmount.toFixed(2);
+
+        // AJAX call to create SaleDiscount
+       
+        const cashierId = document.getElementById('cashierId').value; // Hidden input for cashier ID
+
+        $.ajax({
+            url: '/salon/create-sale-discount/',
+            method: 'POST',
+            data: {
+                sale_id: saleId,
+                proposed_discount: discountAmount,
+                csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            success: function(response) {
+                alert(response.message);
+            },
+            error: function() {
+                alert('Failed to create sale discount.');
+            }
+        });
+
+        alert(`Discount of ${discountPercentage}% applied to total. New Total: ₦${totalAmount.toFixed(2)}`);
+    } else if (discountType === 'item') {
+        // Apply discount to a specific item
+        const itemIndex = parseInt(document.getElementById('itemIndex').value) - 1;
+        const tbody = document.getElementById('transactionBody');
+        const rows = tbody.getElementsByTagName('tr');
+
+        if (itemIndex >= 0 && itemIndex < rows.length) {
+            const cells = rows[itemIndex].getElementsByTagName('td');
+            const itemTotal = parseFloat(cells[3].innerText.replace('₦', ''));
+            const discountAmount = (itemTotal * discountPercentage) / 100;
+            const newTotal = itemTotal - discountAmount;
+            cells[3].innerText = `₦${newTotal.toFixed(2)}`;
+
+            // Update the grand total
+            totalAmount -= discountAmount;
+            document.getElementById('total').innerText = totalAmount.toFixed(2);
+
+            // AJAX call to create SaleItemDiscount
+            const saleItemId = rows[itemIndex].dataset.saleItemId; // Assume each row has a data attribute for sale item ID
+            const cashierId = document.getElementById('cashierId').value; // Hidden input for cashier ID
+
+            $.ajax({
+                url: '/salon/apply-sale-item-discount/',
+                method: 'POST',
+                data: {
+                    sale_item_id: saleItemId,
+                    proposed_discount: discountAmount,
+                    csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                success: function(response) {
+                    alert(response.message);
+                },
+                error: function() {
+                    alert('Failed to create sale item discount.');
+                }
+            });
+
+            alert(`Discount of ${discountPercentage}% applied to item. New Item Total: ₦${newTotal.toFixed(2)}`);
+        } else {
+            alert('Invalid item index.');
+        }
+    }
+
+    closeDiscountOverlay();
+}
+
+let heldTransactions = []; // Array to store held transactions
+
+// Hold the current transaction
+function holdTransaction() {
+    const tbody = document.getElementById("transactionBody");
+    const rows = tbody.getElementsByTagName("tr");
+    const currentTransaction = [];
+
+    // Store each row in the held transaction
+    for (let row of rows) {
+        const cells = row.getElementsByTagName("td");
+        currentTransaction.push({
+            quantity: cells[0].innerText,
+            description: cells[1].innerText,
+            price: cells[2].innerText,
+            total: cells[3].innerText,
+        });
+    }
+
+    heldTransactions.push(currentTransaction); // Save the current transaction
+    alert("Transaction held successfully!");
+    clearTransaction(); // Clear the current transaction
+}
+
+// Recall a held transaction
+function recallTransaction() {
+    if (heldTransactions.length === 0) {
+        alert("No held transactions to recall.");
+        return;
+    }
+
+    const recalledTransaction = heldTransactions.pop(); // Get the most recent held transaction
+    const tbody = document.getElementById("transactionBody");
+
+    for (let item of recalledTransaction) {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item.quantity}</td>
+            <td>${item.description}</td>
+            <td>${item.price}</td>
+            <td>${item.total}</td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    alert("Transaction recalled successfully!");
+}
+// Set custom price for the last added item
+function setPrice() {
+    const price = parseFloat(prompt("Enter the new price for the last item:")) || 0;
+
+    if (price <= 0) {
+        alert("Invalid price.");
+        return;
+    }
+
+    const tbody = document.getElementById("transactionBody");
+    const rows = tbody.getElementsByTagName("tr");
+
+    if (rows.length === 0) {
+        alert("No items to update.");
+        return;
+    }
+
+    const lastRow = rows[rows.length - 1]; // Get the last row
+    const quantity = parseInt(lastRow.cells[0].innerText);
+    const newTotal = quantity * price;
+
+    lastRow.cells[2].innerText = `$${price.toFixed(2)}`; // Update the price cell
+    lastRow.cells[3].innerText = `$${newTotal.toFixed(2)}`; // Update the total cell
+
+    // Update the overall total
+    const oldTotal = parseFloat(lastRow.cells[3].innerText.replace("$", ""));
+    totalAmount2 += newTotal - oldTotal;
+    document.getElementById("total").innerText = totalAmount.toFixed(2);
+
+    alert("Price updated successfully.");
+}
+let salesHistory = []; // Array to store completed sales
+
+// Save the current sale to the history
+function saveSale(paidAmount, method) {
+    const tbody = document.getElementById("transactionBody");
+    const rows = tbody.getElementsByTagName("tr");
+    const transaction = [];
+
+    for (let row of rows) {
+        const cells = row.getElementsByTagName("td");
+        transaction.push({
+            quantity: cells[0].innerText,
+            description: cells[1].innerText,
+            price: cells[2].innerText,
+            total: cells[3].innerText,
+        });
+    }
+
+    salesHistory.push({
+        date: new Date(),
+        items: transaction,
+        total: totalAmount.toFixed(2),
+        paid: paidAmount.toFixed(2),
+        method: method,
+    });
+
+    alert("Sale saved to history.");
+}
+
+// View sales history
+function viewSalesHistory() {
+    const historyOverlay = document.createElement("div");
+    historyOverlay.style.position = "fixed";
+    historyOverlay.style.top = "0";
+    historyOverlay.style.left = "0";
+    historyOverlay.style.width = "100%";
+    historyOverlay.style.height = "100%";
+    historyOverlay.style.background = "rgba(0,0,0,0.8)";
+    historyOverlay.style.color = "white";
+    historyOverlay.style.padding = "20px";
+    historyOverlay.style.overflowY = "scroll";
+    historyOverlay.style.zIndex = "1000";
+
+    let historyContent = "<h2>Sales History</h2><button onclick='closeSalesHistory(this)'>Close</button>";
+
+    salesHistory.forEach((sale, index) => {
+        historyContent += `
+            <div style="margin-bottom: 20px;">
+                <h3>Sale #${index + 1}</h3>
+                <p>Date: ${sale.date.toLocaleString()}</p>
+                <p>Total: $${sale.total}</p>
+                <p>Paid: $${sale.paid}</p>
+                <p>Method: ${sale.method}</p>
+                <table style="width: 100%; text-align: left; margin-top: 10px; border: 1px solid #fff;">
+                    <thead>
+                        <tr>
+                            <th>Qty</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sale.items
+                            .map(
+                                (item) =>
+                                    `<tr>
+                                        <td>${item.quantity}</td>
+                                        <td>${item.description}</td>
+                                        <td>${item.price}</td>
+                                        <td>${item.total}</td>
+                                    </tr>`
+                            )
+                            .join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    });
+
+    historyOverlay.innerHTML = historyContent;
+    document.body.appendChild(historyOverlay);
+}
+
+// Close sales history overlay
+function closeSalesHistory(button) {
+    const overlay = button.parentElement;
+    document.body.removeChild(overlay);
+}
+
+function completeSale() {
+    $.ajax({
+        url: '/salon/complete-sale/', // The endpoint for completing the sale
+        type: 'POST', // HTTP method
+        data: {
+            sale_id: saleId,
+            csrfmiddlewaretoken: getCSRFToken(), // Include the CSRF token in the data
+        },
+        success: function (response) {
+            if (response.status === 'success') {
+                alert('Sale has been marked as completed, you can now make payment.');
+                // Optionally update the UI to reflect the completed status
+            } else {
+                console.log(saleId);
+                if (!saleId) {
+                    response.message = "You have not selected any item!";
+                }
+                alert('Error: ' + response.message);
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error('Error:', error);
+            alert('An error occurred while completing the sale.');
+        }
+    });
+}
+
+// Unified items array
+const items = [
+{% for item in items %}
+    { id: {{item.id}}, name: "{{item.name}}", price: {{item.price}}, description: "{{item.description}}"},
+{% endfor %}
+];
+
+// Unified cart array
+const cart = [];
+let totalAmount2 = 0;
+
+// Function to render items in the modal table
+function renderTable(data) {
+    const tableBody = document.getElementById("tableBody");
+    tableBody.innerHTML = ""; // Clear previous data
+
+    data.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+           <spa></spa <td class="tablecolum1">${item.barcode}</td>
+            <td class="tablecolum2">${item.name}</td>
+            <td class="tablecolum1">${item.description}</td>
+            <td class="tablecolum2">${item.category}</td>
+            <td class="tablecolum1">${item.price}</td>
+            <td class="tablecolum2"><button class="AddTOCartBtnSearch" onclick="addToCart('${item.barcode}', ${item.id}, '${item.name}', ${item.price})">Add to Cart</button></td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// Function to handle adding items to the cart
+function addToCart(barcode, itemID, itemName, price) {
+    // Find the item in the items array using its barcode
+    const item = items.find(i => i.barcode === barcode);
+    if (!item) {
+        alert("Item not found!");
+        return;
+    }
+
+    // Check if the item is already in the cart
+    const existingItem = cart.find(i => i.barcode === barcode);
+    if (existingItem) {
+        // If item exists, increase its quantity
+        existingItem.quantity += 1;
+        addItem(itemName, price, itemID)
+    } else {
+            // If item doesn't exist, add it to the cart with quantity = 1
+            cart.push({ ...item, quantity: 1 });
+        addItem(itemName, price, itemID)
+    }
+    // Re-render the cart
+    renderCart();
+}
+
+// Function to render the cart
+function renderCart() {
+    const tbody = document.getElementById("transactionBody");
+    tbody.innerHTML = ""; // Clear the cart before rendering
+
+    // Reset total amount
+    totalAmount2 = 0;
+
+    cart.forEach(item => {
+        const price = parseFloat(item.price.replace("₦", "").replace("$", ""));
+        const itemTotal = item.quantity * price;
+        totalAmount2 += itemTotal;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item.barcode}</td>
+            <td>${item.quantity}</td>
+            <td>${item.name}</td>
+            <td>₦${price.toFixed(2)}</td>
+            <td>₦${itemTotal.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Update the total in the "Totals" section
+    document.getElementById("total2").innerText = totalAmount2.toFixed(2);
+}
+
+// Function to search items in the modal
+function searchItems() {
+    const query = document.getElementById("SearchProduct").value.toLowerCase();
+    const filteredItems = items.filter(item =>
+        item.barcode.toLowerCase().includes(query) ||
+        item.name.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query)
+    );
+    renderTable(filteredItems);
+}
+
+// Functions to handle modal visibility
+function openSearch() {
+    document.querySelector(".search-overlay").style.display = "flex";
+    renderTable(items); // Render all items initially
+}
+
+function closeSearch() {
+    document.querySelector(".search-overlay").style.display = "none";
+}
+
+
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Menu data
+    const menuData = {
+        {% for cat in categories %}
+            {{cat.name}}: [
+                {% for item in items %}
+                    {% if item.category == cat %}
+                        { id: {{item.id}}, name: "{{item.name}}", price: {{item.price}}, description: "{{item.description}}"},
+                    {% endif %}
+                {% endfor %}
+            ],
+        {% endfor %}
+    };
+
+    // Transaction data
+    let transactionItems = []; // Initialize transaction items array
+    let total = 0; // Initialize total
+
+    // Selectors
+    const menuItemsContainer = document.getElementById("menuItemsContainer");
+    const transactionBody = document.getElementById("transactionBody");
+    const totalElement = document.getElementById("total2");
+    const myAmountDue = document.getElementById("amountDue")
+    const categoryButtons = document.querySelectorAll(".btnSalon");
+
+
+    // Function to display menu items for a selected category
+    const displayMenuItems = (category) => {
+        menuItemsContainer.innerHTML = ""; // Clear existing items
+        const items = menuData[category] || [];
+        if (items.length === 0) {
+            menuItemsContainer.innerHTML = "<p>No items available.</p>";
+            return;
+        }
+
+        items.forEach((item) => {
+            const itemDiv = document.createElement("div");
+            // itemDiv.style.border = "1px solid #ddd";
+            itemDiv.style.padding = "0px";
+            itemDiv.style.margin = "0px";
+            itemDiv.style.width = "200px";
+            itemDiv.innerHTML = `
+            <div class="add-to-transaction">
+                <p class="nameItemSalon">${item.name}</p>
+            </div>
+               
+            `;
+
+            itemDiv.querySelector(".add-to-transaction").addEventListener("click", () => addToTransaction(item));
+                menuItemsContainer.appendChild(itemDiv);
+            });
+        };
+
+    const setActiveTab = (button) => {
+        categoryButtons.forEach((btn) => {
+            btn.classList.remove("active-tab"); // Remove active class from all buttons
+        });
+        button.classList.add("active-tab"); // Add active class to the clicked button
+    };
+
+
+    // Function to add an item to the transaction table
+    const addToTransaction = (item) => {
+        // Check if item is already in the transaction
+        const existingItem = transactionItems.find((tItem) => tItem.id === item.id);
+        if (existingItem) {
+            // Update quantity and total
+            existingItem.quantity += 1;
+            existingItem.total = existingItem.quantity * existingItem.price;
+        } else {
+            // Add new item
+            transactionItems.push({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: 1,
+                total: item.price,
+            });
+        }
+
+        addItem(item.name, item.price, item.id)
+        updateTransactionTable(); // Refresh the table
+    };
+
+    // Function to update the transaction table
+    const updateTransactionTable = () => {
+        transactionBody.innerHTML = ""; // Clear previous rows
+
+        transactionItems.forEach((item) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${item.id}</td>
+                <td>${item.quantity}</td>
+                <td>${item.name}</td>
+                <td>₦${item.price}</td>
+                <td>₦${item.total}</td>
+            `;
+            transactionBody.appendChild(row);
+        });
+
+        // Update the total
+        total = transactionItems.reduce((acc, item) => acc + item.total, 0);
+        totalElement.textContent = `₦${total.toFixed(2)}`;
+        myAmountDue.textContent = `₦${total.toFixed(2)}`
+        
+    };
+
+    const printReceipt = (paidAmount = total, change = 0, method = "Cash") => {
+        const receiptData = transactionItems.map((item) => ({
+            quantity: item.quantity,
+            description: item.name,
+            price: `₦${item.price.toFixed(2)}`,
+            total: `₦${item.total.toFixed(2)}`,
+        }));
+
+        let receiptContent = `
+            <div style="text-align: center; font-family: Arial, sans-serif; margin: 20px;">
+                <h2>Elegante Arcade</h2>
+                <p>No 1 Bria Street Ademola Adetokunbo Crescent<br>Wuse 2 Abuja</p>
+                <p>07068686839</p>
+                <p>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+                <hr>
+                <table style="width: 100%; text-align: left; margin-bottom: 20px;">
+                    <thead>
+                        <tr>
+                            <th>QTY</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        receiptData.forEach((item) => {
+            receiptContent += `
+                <tr>
+                    <td>${item.quantity}</td>
+                    <td>${item.description}</td>
+                    <td>${item.price}</td>
+                    <td>${item.total}</td>
+                </tr>
+            `;
+        });
+
+        receiptContent += `
+                    </tbody>
+                </table>
+                <hr>
+                <p><strong>TOTAL NGN: ₦${total.toFixed(2)}</strong></p>
+                <p>Paid: NGN ${paidAmount.toFixed(2)}</p>
+                <p>Change: NGN ${change.toFixed(2)}</p>
+                <hr>
+                <p>Powered by digi02.org</p>
+            </div>
+        `;
+
+        const receiptWindow = window.open("", "Receipt", "width=400,height=600");
+        receiptWindow.document.write(receiptContent);
+        receiptWindow.document.close();
+        receiptWindow.print();
+    };
+
+    // Clear transaction
+    const clearTransaction = () => {
+        transactionBody.innerHTML = "";
+        transactionItems = [];
+        total = 0;
+        totalElement.textContent = `₦0.00`;
+    };
+
+    // Event listener for the print receipt button
+    document.getElementById("printReceiptButton").addEventListener("click", () => {
+        if (transactionItems.length === 0) {
+            alert("No transactions to print.");
+            return;
+        }
+        printReceipt();
+        clearTransaction();
+    });
+
+
+    categoryButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            const category = button.getAttribute("data-category");
+            displayMenuItems(category);
+            setActiveTab(button); // Highlight the active tab
+        });
+    });
+
+    
+    
+
+
+
+    // Attach event listeners to category buttons
+    document.querySelectorAll(".btnSalon").forEach((button) => {
+        button.addEventListener("click", () => {
+            const category = button.getAttribute("data-category");
+            displayMenuItems(category);
+        });
+    });
+
+    // Display the first category by default
+    displayMenuItems("burger");
+});
+
+
+
+
+
+    </script>
+{% endblock main_content %}

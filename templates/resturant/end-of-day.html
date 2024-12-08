@@ -1,0 +1,142 @@
+{% extends "resturant/base.html" %}
+
+{% block main_content %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<!-- Chart.js (if needed) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .main-content{
+        background-color: #fff;
+    }
+
+    .actions{
+        display: flex;
+        gap: 18px;
+    }
+
+    .exportBtn{
+        background-color: rgb(123, 5, 5);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-block;
+        cursor: pointer;
+        font-size: 16px;
+        margin-right: 10px;
+        transition: backround-color 0.3s ease;
+    }
+
+    .exportBtn:hover{
+        background-color: white;
+        border: 1px solid rgb(123, 5, 5) !important;
+        color: black;
+    }
+
+    button.exportBtn{
+        border-color: rgb(123, 5, 5);
+    }
+
+    a.exportBtn{
+        display: inline-block;
+        border-color: rgb(123, 5, 5);
+    }
+
+    .container mt-5, p, th{
+        color: #5B6670;
+    }
+
+    .container mt-5, h2{
+        position: relative;
+        top: -17px;
+        color: black;
+    }
+</style>
+
+<div class="container mt-5">
+    <h2>End of Day Sales Report</h2>
+    {% if day.end == False %}
+        <div id="summary">
+            <p><strong>Total Sales: </strong><span id="totalSales">0</span></p>
+            <p><strong>Total Paid: </strong><span id="totalPaid">0</span></p>
+            <p><strong>Total Completed: </strong><span id="totalCompleted">0</span></p>
+            <p><strong>Total Pending: </strong><span id="totalPending">0</span></p>
+        </div>
+    {% else %}
+    <div id="summary">
+        <p><strong>Total Sales: </strong><span id="totalSales">{{total_sales}}</span></p>
+        <p><strong>Total Paid: </strong><span id="totalPaid">{{total_amount}}</span></p>
+        <p><strong>Total Completed: </strong><span id="totalCompleted">0</span></p>
+        <p><strong>Total Pending: </strong><span id="totalPending">0</span></p>
+    </div>
+    {% endif %}
+<br>
+     <!-- DataTable -->
+    <table id="salesTable" class="display" width="100%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cashier</th>
+                <th>Amount</th>
+                <th>End Amount</th>
+                <th>No of Sales</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for day in sales %}
+            <tr>
+                <td>{{ day.id }}</td>
+                <td>{{ day.cashier.username }}</td>
+                <td>{{ day.total }}</td>
+                <td>{{ day.completed }}</td>
+                <td>{{ day.paid }}</td>
+                <td>{{ day.date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="actions">
+        
+        {% if day.end %}
+            <button class="exportBtn">Export to CSV</button>
+        {% else %}
+            <a href="{% url 'resturant_end_day' %}" class="exportBtn">End Day</a>          
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#salesTable').DataTable();
+
+        $('#endDayBtn').on('click', function() {
+            $.ajax({
+                url: "{% url 'end_day' %}",
+                method: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        alert(response.message);
+                        location.reload();
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    alert('Failed to end the day.');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

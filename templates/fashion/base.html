@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<script src="{% static 'assets/js/jquery-3.7.1.min.js' %}"></script>
+<style>
+    .container.mt-4{
+        margin: auto;
+        margin-top: 0 !important;
+    }
+.container-with-sidebar {
+    display: flex;
+    min-height: 80vh;
+}
+
+/* Sidebar styles */
+.sidebar {
+    color:black !important ;
+    padding: 1em;
+    overflow-y: auto;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-menu li {
+    margin: 1em 0;
+}
+
+.sidebar-menu a {
+    color: #5B6670;
+    text-decoration: none;
+    display: block;
+    padding: 0.5em 1em;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.sidebar-menu a:hover {
+    color: #d02222;
+}
+
+/* Main content area */
+.main-content {
+    flex-grow: 1;
+    background-color: #f4f4f4;
+    min-height: 85%;
+}
+div.dataTables_wrapper div.dataTables_info {
+    padding-top: 68px !important;
+}
+</style>
+<div class="container-with-sidebar" style="display: flex;">
+        <!-- Sidebar -->
+    <div class="sidebar">
+        <ul class="sidebar-menu">
+            <li>
+        <h3>Fashion Store</h3>
+            </li>
+            <li><a href="{% url 'fashion_cashier'%}"><i data-feather="user" style="width:18px; height:18px ;margin-right:10px"></i>POS</a></li>
+            
+            <li><a href="{% url 'fashion_sales_history' %}"> <i data-feather="shopping-cart" style="width:18px; height:18px ;margin-right:10px"></i>Sales</a></li>
+            {% if user.role == "Cashier" %}{% else %}
+            <li><a href="{% url 'fashion_inventory_list' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Inventory</a></li>
+            <li><a href="{% url 'fashion_audit_report' %}"><i data-feather="bar-chart-2"  style="width:18px; height:18px ;margin-right:10px"></i>Reports</a></li>
+            {% endif %}
+            <li><a href="{% url 'fashion_end_of_day_report' %}"><i data-feather="inbox" style="width:18px; height:18px ;margin-right:10px"></i>End of Day</a></li>
+
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        {% block main_content %}
+        <!-- This block is for the main content of pages that extend this template -->
+        {% endblock main_content %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,318 @@
+{% extends "beauty/base.html" %}
+
+{% block main_content %}
+<style>
+    .main-content {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    margin: 20px auto;
+    max-width: 1000px;
+}
+
+h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    margin-top: 30px;
+    font-size: 22px;
+    color: #444;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 16px;
+    text-align: left;
+}
+
+.styled-table th, .styled-table td {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+}
+
+.styled-table th {
+    background-color: #f2f2f2;
+    color: #333;
+    text-align: center;
+}
+
+.chart-container {
+    margin: 30px auto;
+    max-width: 600px;
+}
+
+</style>
+<div class="">
+    <h2>Comprehensive Beauty Store Report</h2>
+
+    <!-- Sales Summary -->
+    <h3 class="section-title">Sales Summary</h3>
+    <table class="styled-table">
+        <tr><td>Starting Cash:</td><td>₦{{ day.start_amount }}</td></tr>
+        <tr><td>Total Sales:</td><td>₦{{ total_sales }}</td></tr>
+        <tr><td>Completed Sales:</td><td>{{ total_completed_sales }}</td></tr>
+        <tr><td>Pending Sales:</td><td>{{ total_pending_sales }}</td></tr>
+    </table>
+
+    <!-- Cashier Performance -->
+    <h3 class="section-title">Cashier Performance</h3>
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th>Cashier</th>
+                <th>Total Sales</th>
+                <th>Completed Sales</th>
+                <th>Total Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for performance in cashier_performance %}
+            <tr>
+                <td>{{ performance.cashier__username }}</td>
+                <td>₦{{ performance.total_sales }}</td>
+                <td>{{ performance.completed_sales }}</td>
+                <td>₦{{ performance.total_revenue }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Inventory Impact -->
+    <h3 class="section-title">Inventory Impact</h3>
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Product</th>
+                <th>Quantity Sold</th>
+                <th>Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory_impact %}
+            <tr>
+                <td>{{ item.product__category__name }}</td>
+                <td>{{ item.product__name }}</td>
+                <td>{{ item.total_quantity }}</td>
+                <td>₦{{ item.total_revenue }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Profit and Loss -->
+    <h3 class="section-title">Profit and Loss</h3>
+    <table class="styled-table">
+        <tr><td>Total Revenue:</td><td>₦{{ total_revenue }}</td></tr>
+        <tr><td>Total Cost:</td><td>₦{{ total_cost }}</td></tr>
+        <tr><td>Gross Profit:</td><td>₦{{ gross_profit }}</td></tr>
+        <tr><td>Profit/Loss Ratio:</td><td>{{ profit_loss_ratio|floatformat:2 }}%</td></tr>
+    </table>
+
+    <!-- Discounts -->
+    <h3 class="section-title">Discounts</h3>
+    <table class="styled-table">
+        <tr><td>Total Discounts Proposed:</td><td>₦{{ total_sale_discounts }}</td></tr>
+        <tr><td>Total Discounts Approved:</td><td>₦{{ total_approved_discounts }}</td></tr>
+    </table>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Sales Growth Chart
+    const salesGrowthData = JSON.parse(document.getElementById('sales-growth-data').textContent);
+    const labels = salesGrowthData.map(item => `${item.hour}:00`);
+    const data = salesGrowthData.map(item => item.total);
+
+    const salesGrowthCtx = document.getElementById('salesGrowthChart').getContext('2d');
+    new Chart(salesGrowthCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Hourly Sales (₦)',
+                data: data,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hour of the Day',
+                    },
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Sales (₦)',
+                    },
+                }
+            }
+        }
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body {
+        background-color: #f8f9fa;
+        font-family: Arial, sans-serif;
+    }
+    .container {
+        margin-top: 20px;
+    }
+    .card {
+        margin-bottom: 20px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+    table th, table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+    }
+    table th {
+        background-color: #007bff;
+        color: white;
+    }
+    canvas {
+        max-width: 100%;
+    }
+</style>
+<div class="">
+    <!-- Metrics -->
+    <div class="row text-center">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3>Total Sales</h3>
+                    <p class="display-6">{{ total_sales }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3>Items Sold</h3>
+                    <p class="display-6">{{ total_items_sold }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3>Inventory Value</h3>
+                    <p class="display-6">{{ total_inventory_value }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row my-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4>Daily Sales Growth</h4>
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4>Inventory Levels</h4>
+                    <canvas id="inventoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h4>Top 5 Products</h4>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity Sold</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in top_products %}
+                    <tr>
+                        <td>{{ product.product__name }}</td>
+                        <td>{{ product.total_quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Script -->
+<script>
+    // Sales Chart
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_chart_data.labels|safe }},
+            datasets: [{
+                label: 'Daily Sales',
+                data: {{ sales_chart_data.values|safe }},
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+
+    // Inventory Chart
+    const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
+    const inventoryChart = new Chart(inventoryCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ inventory_chart_data.labels|safe }},
+            datasets: [{
+                label: 'Inventory Levels',
+                data: {{ inventory_chart_data.values|safe }},
+                backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                borderColor: 'rgba(153, 102, 255, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+</script>
+{% endblock %}

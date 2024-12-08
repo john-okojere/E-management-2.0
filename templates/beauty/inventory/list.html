@@ -1,0 +1,162 @@
+{% extends "beauty/base.html" %}
+
+{% block main_content %}
+<style>
+    * {
+        padding: 0;
+        margin: 0;
+    }
+
+    .mb-3 h1 {
+        position: relative !important;
+        top: 10px !important;
+        left: 8px !important;
+        color: black !important;
+    }
+
+    .btn.btn-primary {
+        background-color: rgb(123, 5, 5) !important;
+        border: 1px solid rgb(123, 5, 5) !important;
+        color: white;
+        margin-left: 2px;
+    }
+
+    .btn.btn-primary:hover {
+        background-color: white !important;
+        border: 1px solid rgb(123, 5, 5) !important;
+        color: black !important;
+    }
+
+    .loading-indicator {
+        text-align: center;
+        font-size: 16px;
+        margin: 20px 0;
+        color: gray;
+    }
+</style>
+
+<div class="container">
+    <br>
+    <!-- Add Inventory Button -->
+    <div class="mb-3" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Inventory List</h1>
+        <div>
+            <a href="{% url 'beauty_inventory_categorry' %}" class="btn btn-primary">Add Category</a>
+            <a href="{% url 'beauty_add_inventory' %}" class="btn btn-primary">Add Inventory</a>
+            <a href="{% url 'beauty_upload_inventory' %}" class="btn btn-primary">Upload Inventory File</a>
+        </div>
+    </div>
+    <hr><br>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="loading-indicator">Loading inventory data, please wait...</div>
+
+    <!-- Inventory Table -->
+    <table id="inventory-table" class="table table-striped table-bordered" style="display: none;">
+        <thead>
+            <tr>
+                <th>Barcode</th>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Brand</th>
+                <th>Category</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>Cost Price</th>
+                <th>Price</th>
+                <th>Buying Unit</th>
+                <th>Selling Unit</th>
+                <th>Qty/Buying Unit</th>
+                <th>Staff</th>
+                <th>Date Added</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be populated by JavaScript -->
+        </tbody>
+    </table>
+</div>
+
+<!-- DataTables Scripts -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        // Show loading indicator and load inventory data after page load
+        setTimeout(() => {
+            fetchInventoryData();
+        }, 100); // Simulate delay to ensure page is fully rendered
+
+        // Fetch inventory data via AJAX
+        function fetchInventoryData() {
+            $.ajax({
+                url: '/cosmetic_store/api/inventory/', // Adjust URL to your API endpoint
+                method: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data);
+                    populateTable(data.data);
+                    $('#loadingIndicator').hide();
+                    $('#inventory-table').show();
+                },
+                error: function () {
+                    alert('Failed to load inventory data.');
+                }
+            });
+        }
+
+        // Populate inventory table with data
+        function populateTable(data) {
+            const tableBody = $('#inventory-table tbody');
+            tableBody.empty();
+
+            data.forEach(item => {
+                tableBody.append(`
+                    <tr>
+                        <td>${item.barcode}</td>
+                        <td>${item.code}</td>
+                        <td>${item.name}</td>
+                        <td>${item.brand}</td>
+                        <td>${item.category.name}</td>
+                        <td>${item.size}</td>
+                        <td>${item.quantity}</td>
+                        <td>₦${parseFloat(item.cost_price).toFixed(2)}</td>
+                        <td>₦${parseFloat(item.price).toFixed(2)}</td>
+                        <td>${item.buying_unit}</td>
+                        <td>${item.selling_unit}</td>
+                        <td>${item.qty_per_buying_unit}</td>
+                        <td>${item.staff.username}</td>
+                        <td>${new Date(item.date).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#updateModal"
+                                data-id="${item.id}" 
+                                data-name="${item.name}" 
+                                data-price="${item.price}" 
+                                data-quantity="${item.quantity}" 
+                                data-description="${item.description}">
+                                Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                data-id="${item.id}" 
+                                data-name="${item.name}">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            });
+
+            initializeDataTable();
+        }
+
+        // Initialize DataTable
+        function initializeDataTable() {
+            $('#inventory-table').DataTable();
+        }
+    });
+</script>
+{% endblock %}

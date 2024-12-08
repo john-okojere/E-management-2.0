@@ -1,0 +1,184 @@
+{% extends "fashion/base.html" %}
+
+{% block main_content %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container my-4">
+    <h1>Sales History</h1>
+
+    <!-- DataTable -->
+    <table id="salesTable" class="display table table-striped table-bordered" style="width:100%">
+        <thead class="table-dark">
+            <tr>
+                <th>Sale ID</th>
+                <th>Cashier</th>
+                <th>Completed</th>
+                <th>Total (₦)</th>
+                <th>Paid</th>
+                <th>Date</th>
+                <th>Actions</th> <!-- For print button -->
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr>
+                <td>{{ sale.id }}</td>
+                <td>{{ sale.cashier }}</td>
+                <td>{{ sale.completed }}</td>
+                <td>₦{{ sale.total }}</td>
+                <td>{{ sale.paid }}</td>
+                <td>{{ sale.date }}</td>
+                <td><button class="btn btn-primary btn-sm" onclick="printReceipt({{ sale.id }})">Print Receipt</button></td>
+            </tr>
+            {% endfor %}
+            <!-- Data will be populated via JavaScript -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Fetch Sales Data and Populate Table
+    function fetchSalesHistory() {
+        $.ajax({
+            url: '/fashion/sales-history/', // Update with the correct URL
+            method: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                updateDataTable(data.sales);
+            },
+            error: function() {
+            }
+        });
+    }
+
+    // Populate DataTable with fetched data
+    function updateDataTable(sales) {
+        const table = $('#salesTable').DataTable();
+        table.clear();
+
+        sales.forEach(sale => {
+            const printButton = `<button class="btn btn-primary btn-sm" onclick="printReceipt(${sale.id})">Print Receipt</button>`;
+            table.row.add([
+                sale.id,
+                sale.cashier,
+                sale.completed,
+                `₦${sale.total.toFixed(2)}`,
+                sale.paid,
+                sale.date,
+                printButton
+            ]);
+        });
+
+        table.draw();
+    }
+
+    // Function to fetch sale details and print receipt
+    function printReceipt(saleId) {
+        $.ajax({
+            url: `/fashion/sale/${saleId}/receipt/`, // Adjust to match your backend URL
+            method: 'GET',
+            success: function(data) {
+                const receiptWindow = window.open("", "Receipt", "width=400,height=600");
+                const receiptContent = `
+                    <html>
+                    <head>
+                        <title>Receipt for Sale #${saleId}</title>
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                margin: 20px;
+                                line-height: 1.6;
+                            }
+                            h1, h2 {
+                                text-align: center;
+                            }
+                            table {
+                                width: 100%;
+                                border-collapse: collapse;
+                                margin-top: 20px;
+                            }
+                            table, th, td {
+                                border: 1px solid #000;
+                            }
+                            th, td {
+                                padding: 10px;
+                                text-align: left;
+                            }
+                            .total {
+                                text-align: right;
+                                font-weight: bold;
+                                margin-top: 10px;
+                            }
+                            .footer {
+                                text-align: center;
+                                margin-top: 20px;
+                                font-size: 12px;
+                                color: #555;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Elegante fashion</h1>
+                        <p>No 1 Bria Street Ademola Adetokunbo Crescent<br>Wuse 2 Abuja</p>
+                        <p>07068686839</p>
+                        <p>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+                        <h2>Receipt for Sale #${saleId}</h2>
+                        <p><strong>Cashier:</strong> ${data.cashier || 'N/A'}</p>
+                        <p><strong>Date:</strong> ${new Date(data.date).toLocaleString() || 'N/A'}</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Price (₦)</th>
+                                    <th>Total (₦)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.items.map(item => `
+                                    <tr>
+                                        <td>${item.product || 'N/A'}</td>
+                                        <td>${item.quantity || 0}</td>
+                                        <td>${parseFloat(item.price).toFixed(2) || '0.00'}</td>
+                                        <td>${parseFloat(item.total).toFixed(2) || '0.00'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <p class="total">Grand Total: ₦${parseFloat(data.total).toFixed(2) || '0.00'}</p>
+                        <div class="footer">
+                            <p>Thank you for shopping with Elegante fashion!</p>
+                            <p>Powered by Digi02.org</p>
+                        </div>
+                    </body>
+                    </html>
+                `;
+
+                // Write and print
+                receiptWindow.document.write(receiptContent);
+                receiptWindow.document.close();
+                receiptWindow.print();
+            },
+            error: function() {
+                alert('Failed to fetch receipt details.');
+            }
+        });
+    }
+
+    // Initialize DataTable and Fetch Data
+    $(document).ready(function() {
+        $('#salesTable').DataTable({
+            dom: 'Bfrtip',
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+        });
+        fetchSalesHistory();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "spa/base.html" %}
+
+{% block main_content %}
+<style>
+    /* General Styles */
+
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Lists */
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+/* Payment Summary */
+.payment-summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.payment-summary li {
+    flex: 1 1 calc(33.333% - 10px);
+    margin: 5px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1rem;
+    border: 1px solid #e0e0e0;
+}
+
+.payment-summary li span {
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* Category and Top Products Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+table th, table td {
+    text-align: left;
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+/* Buttons */
+button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .payment-summary li {
+        flex: 1 1 100%;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    h3 {
+        font-size: 1.2rem;
+    }
+}
+
+</style>
+<div class="container">
+    <h1>End of Day Report</h1>
+    <hr>
+<div class=" d-flex mx-5 mb-5" style="gap: 5rem;">
+    <div>
+        <table class="grid-container">
+       <tr> <h2>Overview</h2></tr>
+       <tr class="grid-item"><th>Date:</th><td>{{ report.overview.date }}</td></tr>
+            <tr class="grid-item"><th>Cashier:</th> <td>{{ report.overview.cashier }}</tr>
+            <tr class="grid-item"><th>Start Time:</th> <td>{{ report.overview.start_time }}</td></tr>
+            <tr class="grid-item"><th>End Time:</th> <td>{{ report.overview.end_time }}</td></tr>
+            <tr class="grid-item"><th>Starting Amount:</th> <td>₦{{ report.overview.starting_amount }}</td></tr>
+            <tr class="grid-item"><th>Total Sales:</th> <td>₦{{ report.overview.total_sales }}</td></tr>
+            <tr class="grid-item"><th>Completed Sales:</th> <td>{{ report.overview.completed_sales }}</td></tr>
+            <tr class="grid-item"><th>Pending Sales:</th> <td>{{ report.overview.pending_sales }}</td></tr>
+        </table>
+    </div>
+
+    <div>
+        
+        <br>
+        <table class="grid-container">
+            <tr><h2>Payments</h2></tr>
+            <tr class="grid-item"><th>Cash:</th><td> ₦{{ report.payments.cash }}</td></tr>
+            <tr class="grid-item"><th>Card:</th><td> ₦{{ report.payments.card }}</td></tr>
+            <tr class="grid-item"><th>Transfer:</th><td> ₦{{ report.payments.transfer }}</td></tr>
+            <tr class="grid-item"><th>Expected Cash at Hand:</th><td> ₦{{ report.payments.expected_cash_at_hand }}</td></tr>
+        </table>
+    </div>
+</div>
+ {% if user.role != 'Cashier' %}
+ <h2>Category Sales</h2>
+ <table>
+     <thead>
+         <tr>
+             <th>Category</th>
+             <th>Total Revenue (₦)</th>
+             <th>Items Sold</th>
+         </tr>
+     </thead>
+     <tbody>
+         {% for category in report.category_sales %}
+         <tr>
+             <td>{{ category.category }}</td>
+             <td>₦{{ category.total_revenue }}</td>
+             <td>{{ category.items_sold }}</td>
+         </tr>
+         {% endfor %}
+     </tbody>
+ </table>
+
+ <h2>Top Products</h2>
+ <table>
+     <thead>
+         <tr>
+             <th>Product</th>
+             <th>Quantity Sold</th>
+             <th>Total Revenue (₦)</th>
+         </tr>
+     </thead>
+     <tbody>
+         {% for product in report.top_products %}
+         <tr>
+             <td>{{ product.product_name }}</td>
+             <td>{{ product.quantity_sold }}</td>
+             <td>₦{{ product.total_revenue }}</td>
+         </tr>
+         {% endfor %}
+     </tbody>
+ </table>
+ {% endif %}
+</div>
+{% endblock %}
