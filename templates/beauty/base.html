@@ -60,16 +60,16 @@ div.dataTables_wrapper div.dataTables_info {
                 <h3>Cosmetic / Beauty Store</h3>
             </li>
   
-            {% if user.role == "Cashier" or user.level >= 3 %}
+            {% if user.role == "Cashier"%}
             <li><a href="{% url 'beauty_cashier'%}"><i data-feather="user" style="width:18px; height:18px ;margin-right:10px"></i>POS</a></li>
-            <li><a href="{% url 'end_of_day_report' %}"><i data-feather="inbox" style="width:18px; height:18px ;margin-right:10px"></i>End of Day</a></li>
+            <li><a href="{% url 'beauty_end_of_day_report' %}"><i data-feather="inbox" style="width:18px; height:18px ;margin-right:10px"></i>End of Day</a></li>
             {% endif %}
             {% if user.role == "Manager" or user.level >= 3 %}
             <li><a href="{% url 'beauty_dashboard' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Dashboard</a></li>
-            <li><a href="{% url 'manage_approvals' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Manage Approvals</a></li>
+            <li><a href="{% url 'beauty_manage_approvals' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Manage Approvals</a></li>
             <li><a href="{% url 'beauty_inventory_list' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Inventory</a></li>
             {% endif %}
-            <li><a href="{% url 'sales_history' %}"> <i data-feather="shopping-cart" style="width:18px; height:18px ;margin-right:10px"></i>Sales</a></li>
+            <li><a href="{% url 'beauty_sales_history' %}"> <i data-feather="shopping-cart" style="width:18px; height:18px ;margin-right:10px"></i>Sales</a></li>
 
         </ul>
     </div>

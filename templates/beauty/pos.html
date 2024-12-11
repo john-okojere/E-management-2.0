@@ -132,6 +132,24 @@
         margin: 0;
         line-height: 1.2rem;
     }
+    #btnAb{
+        background-color: white !important;
+        color: rgb(123, 5, 5 ) !important;
+        border: 1px solid rgb(123, 5, 5) !important;
+    }
+    #btnAb:hover{
+        background-color: white !important;
+        color: rgb(123, 5, 5) !important;
+        border: 1px solid rgb(123, 5, 5) !important;;
+    }
+    #btnAC{
+        background-color: rgb(123, 5, 5) !important;
+        color: white !important;
+        border: none  !important;
+        margin-top: 4px;
+    }
+    
+    
 </style>
 
 <form method="post">
@@ -142,6 +160,10 @@
     <link rel="stylesheet" href="{% static 'arcade/css/styles.css' %}">
     <div class="left-panel">
         <div class="transaction-container">
+            <div style="display: flex;">
+                <strong style="padding: 10px;display: block;">Sale ID: <span id="saleId">0000</span>;</strong>
+                <strong style="padding: 10px;display: block;">Held Sale ID: <span id="HeldsaleId">0000</span></strong>
+            </div>
             <table class="transaction-table">
                 <thead>
                     <tr>
@@ -308,7 +330,7 @@
 
     <!-- Discount Overlay -->
     <div class="discount-overlay" id="discountOverlay">
-        <div class="discount-container">
+        <div class="discount-container">    
             <button class="close-discount" onclick="closeDiscountOverlay()">X</button>
             <h3>Apply Discount</h3>
             <label for="discountPercentage">Discount Percentage:</label>
@@ -364,8 +386,8 @@
                             <th>Size</th>
                             <th>Price</th>
                             <th>Selling Unit</th>
+                            <th>Quantity</th>
                             <th>Qty/Buying Unit</th>
-                            <th>Date Added</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -485,7 +507,6 @@
             success: function (data) {
                 if (data.status === 'success') {
                     alert('Payment successful!');
-                    location.reload();
                 } else {
                     alert('Payment failed!');
                 }
@@ -519,19 +540,7 @@
     }
 
     function addItem(itemName, itemPrice, itemID) {
-        const price = parseFloat(itemPrice); // Example fixed price per item
-        if (isNaN(price)) {
-            console.error(`Invalid price for item ${itemName}:`, itemPrice);
-            return; // Exit if the price is invalid
-        }
-        const tbody = document.getElementById('transactionBody');
-        const row = document.createElement('tr');
-        const itemTotal = quantity * price;
-        row.innerHTML = `<td>₦{itemID}</td><td>₦{quantity}</td><td>₦{itemName}</td><td> ₦{price.toFixed(2)}</td><td> ₦${itemTotal.toFixed(2)}</td>`;
-        tbody.appendChild(row);
-        totalAmount += itemTotal;
-        console.log(totalAmount)
-        document.getElementById('total2').innerText = totalAmount.toFixed(2);
+        
 
         // If this is the first item, create the sale
         if (!saleId) {
@@ -547,15 +556,16 @@
                 },
                 success: function (response) {
                     saleId = response.sale_id; // Save the sale ID for subsequent items
-                    addSaleItem(itemID, itemName, price, quantity); // Add the first item after creating the sale
-                },
+                    addSaleItem(itemID, itemName, itemPrice, quantity); // Add the first item after creating the sale
+                    document.getElementById("saleId").innerText = saleId;
+        },
                 error: function () {
                     alert('Failed to create sale.');
                 }
             });
         } else {
             // Add the item to the existing sale
-            addSaleItem(itemID, itemName, price, quantity);
+            addSaleItem(itemID, itemName,  itemPrice, quantity);
         }
 
         // Reset quantity to 1 after adding an item
@@ -563,7 +573,34 @@
         document.getElementById('quantityInput').value = '';
     }
 
-    function addSaleItem(itemID, itemName, price, quantity) {
+
+    function addSaleItem(itemID, itemName, itemPrice, quantity) {
+    const tbody = document.getElementById('transactionBody');
+
+    // Check if the item already exists in the table
+    let existingRow = Array.from(tbody.children).find(row => row.dataset.itemId == itemID);
+    if (document.getElementById('saleId').innerText == '0000') {
+        saleId = saleId;
+    }else{
+        saleId = document.getElementById('saleId').innerText;
+        
+    }
+    if (existingRow) {
+        // If the item exists, update its quantity and total
+        const quantityCell = existingRow.querySelector('.item-quantity');
+        const totalCell = existingRow.querySelector('.item-total');
+        let currentQuantity = parseInt(quantityCell.textContent, 10);
+        currentQuantity += quantity; // Increase quantity
+        quantityCell.textContent = currentQuantity;
+
+        const newTotal = currentQuantity * itemPrice; // Calculate new total
+        totalCell.textContent = `₦${newTotal.toFixed(2)}`;
+
+        // Optionally update the backend with the new quantity
+        const saleItemID = existingRow.dataset.saleItemId; // Use the correct sale item ID
+        updateSaleItem(saleItemID, currentQuantity);
+    } else {
+        // If the item does not exist, add a new row and notify the backend
         $.ajax({
             url: '/cosmetic_store/add-sale-item/',
             method: 'POST',
@@ -571,22 +608,121 @@
                 sale_id: saleId,
                 product_id: itemID,
                 quantity: quantity,
-                price: price,
                 csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
             },
             success: function (response) {
-                saleItemId = response.sale_item_id
-                console.log(`Item added to sale: ${itemName} x${quantity}`);
+                const saleItem = response.sale_item;
+
+                // Add new row to the table
+                const row = document.createElement('tr');
+                row.setAttribute('data-item-id', itemID); // Add data attribute for item ID
+                row.setAttribute('data-sale-item-id', saleItem.id); // Use the backend ID
+                row.innerHTML = `
+                    <td>${saleItem.id}</td>
+                    <td class="item-quantity">${saleItem.quantity}</td>
+                    <td>${saleItem.product}</td>
+                    <td>${saleItem.price.toFixed(2)}</td>
+                    <td class="item-total">₦${saleItem.total.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" id="btnAb" onclick="changeQuantity(${saleItem.id}, 1, ${itemPrice})">&plus;</button>
+                        <button class="btn btn-sm btn-danger"  id="btnAC"  onclick="changeQuantity(${saleItem.id}, -1, ${itemPrice})">&minus;</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+
+                // Update total amount
+                totalAmount = response.updated_sale_total;
+                document.getElementById('total2').innerText = totalAmount.toFixed(2);
             },
             error: function () {
-                console.log(saleId,
-                    itemID,
-                    quantity,
-                    price)
                 alert(`Failed to add item: ${itemName}`);
             }
         });
     }
+}
+
+function updateSaleItem(saleItemID, newQuantity) {
+    console.log(saleItemID, newQuantity)
+    $.ajax({
+        url: `/cosmetic_store/update-sale-item/${saleItemID}/`, // Include saleItemID in the URL
+        method: 'POST',
+        data: {
+            quantity: newQuantity,
+            csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        success: function (response) {
+            totalAmount = response.updated_sale_total;
+            document.getElementById('total2').innerText = `${totalAmount}`;
+        },
+        error: function () {
+            alert('Failed to update item quantity.');
+        }
+    });
+}
+
+
+function removeSaleItem(saleItemID) {
+    // Send an AJAX request to remove the sale item
+    $.ajax({
+        url: `/cosmetic_store/remove-sale-item/${saleItemID}/`, // Include saleItemID in the URL
+        method: 'POST',
+        data: {
+            csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        success: function (response) {
+            // Update the total amount after item removal
+            totalAmount = response.updated_sale_total;
+            document.getElementById('total2').innerText = `₦${totalAmount}`;
+
+            console.log(`Item with ID ${saleItemID} removed from the sale.`);
+        },
+        error: function () {
+            alert('Failed to remove the item.');
+        }
+    });
+}
+
+
+function changeQuantity(saleItemID, delta, itemPrice) {
+    const row = document.querySelector(`[data-sale-item-id="${saleItemID}"]`);
+    const quantityCell = row.querySelector('.item-quantity');
+    const totalCell = row.querySelector('.item-total');
+    let currentQuantity = parseInt(quantityCell.textContent, 10) + delta;
+    if (currentQuantity <= 0) {
+        // Remove item if quantity goes to zero
+        removeSaleItem(saleItemID);
+        row.remove();
+    } else {
+        // Update quantity and total
+        quantityCell.textContent = currentQuantity;
+        totalCell.textContent = `₦${(currentQuantity * itemPrice).toFixed(2)}`;
+
+        // Update the item in the sale via AJAX
+        updateSaleItem(saleItemID, currentQuantity);
+    }
+
+    // Recalculate the grand total
+    updateGrandTotal();
+}
+
+
+// Function to calculate and update the grand total
+function updateGrandTotal() {
+    const totalCells = document.querySelectorAll('.item-total'); // All item total cells
+    let grandTotal = 0;
+
+    totalCells.forEach(cell => {
+        // Extract the numeric value from the total cell text
+        const itemTotal = parseFloat(cell.textContent.replace('₦', '').replace(',', ''));
+        if (!isNaN(itemTotal)) {
+            grandTotal += itemTotal;
+        }
+    });
+
+    // Update the grand total display
+    const grandGrandTotal = document.getElementById('total2');
+    grandGrandTotal.textContent = `₦${grandTotal.toFixed(2)}`;
+}
 
 
     // Append number to the active field
@@ -922,7 +1058,7 @@
             // Apply discount to the total
             const discountAmount = (totalAmount * discountPercentage) / 100;
             totalAmount -= discountAmount;
-            document.getElementById('total').innerText = totalAmount.toFixed(2);
+            document.getElementById('total2').innerText = totalAmount.toFixed(2);
             console.log('asssa')
             // Send AJAX request to create SaleDiscount
             $.ajax({
@@ -1075,7 +1211,7 @@
             // Apply discount to the total
             const discountAmount = (totalAmount * discountPercentage) / 100;
             totalAmount -= discountAmount;
-            document.getElementById('total').innerText = totalAmount.toFixed(2);
+            document.getElementById('total2').innerText = totalAmount.toFixed(2);
 
             // AJAX call to create SaleDiscount
 
@@ -1147,50 +1283,83 @@
     let heldTransactions = []; // Array to store held transactions
 
     // Hold the current transaction
-    function holdTransaction() {
-        const tbody = document.getElementById("transactionBody");
-        const rows = tbody.getElementsByTagName("tr");
-        const currentTransaction = [];
+   // Hold the current transaction
+   function holdTransaction() {
+    const tbody = document.getElementById("transactionBody");
+    const rows = tbody.getElementsByTagName("tr");
+    saleId = document.getElementById("saleId").innerText;
+    let currentSaleId = saleId;
+    const currentTransaction = [];
+    let transactionTotal = 0;
+    const heldSalesID = document.getElementById("HeldsaleId");
+    heldSalesID.innerText = saleId.toString().padStart(4, '0');
+    // Store each row in the held transaction and calculate the total
+    for (let row of rows) {
+        const cells = row.getElementsByTagName("td");
+        const total = parseFloat(cells[4].innerText.replace('₦', '').replace(',', '')) || 0; // Parse total
+        transactionTotal += total;
 
-        // Store each row in the held transaction
-        for (let row of rows) {
-            const cells = row.getElementsByTagName("td");
-            currentTransaction.push({
-                quantity: cells[0].innerText,
-                description: cells[1].innerText,
-                price: cells[2].innerText,
-                total: cells[3].innerText,
-            });
-        }
-
-        heldTransactions.push(currentTransaction); // Save the current transaction
-        alert("Transaction held successfully!");
-        clearTransaction(); // Clear the current transaction
+        currentTransaction.push({
+            id: cells[0].innerText,
+            quantity: cells[1].innerText,
+            description: cells[2].innerText,
+            price: cells[3].innerText,
+            total: cells[4].innerText,
+            button: cells[5].innerHTML // Save the button HTML
+        });
     }
+    let heldSales = {
+        saleId: currentSaleId,
+        items: currentTransaction,
+        total: transactionTotal.toFixed(2),
+    }
+    heldTransactions.push(heldSales); // Save the current transaction
+    alert("Transaction held successfully!");
+    clearTransaction(); // Clear the current transaction
+    saleId = null;
+    document.getElementById("saleId").innerText = "0000";
+}
 
     // Recall a held transaction
-    function recallTransaction() {
-        if (heldTransactions.length === 0) {
-            alert("No held transactions to recall.");
-            return;
-        }
+   // Recall a held transaction
+// Recall a held transaction
+function recallTransaction() {
+    if (heldTransactions.length === 0) {
+        alert("No held transactions to recall.");
+        return;
+    }
+    let saleId = document.getElementById("saleId").innerText;
+    let heldSalesID = document.getElementById("HeldsaleId").innerText;
+        
+    const recalledTransaction = heldTransactions.pop(); // Get the most recent held transaction
+    document.getElementById("saleId").innerText = recalledTransaction.saleId;
+    document.getElementById("HeldsaleId").innerText = heldTransactions.length > 0 ? heldTransactions[heldTransactions.length - 1].saleId : '0000';
 
-        const recalledTransaction = heldTransactions.pop(); // Get the most recent held transaction
-        const tbody = document.getElementById("transactionBody");
+    const tbody = document.getElementById("transactionBody");
 
-        for (let item of recalledTransaction) {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-            <td>${item.quantity}</td>
+    for (let item of recalledTransaction.items) {
+        const row = document.createElement("tr");
+        row.setAttribute("data-sale-item-id", item.id); // Add data attribute for sale item ID
+        row.innerHTML = `
+            <td>${item.id}</td>
+            <td class="item-quantity">${item.quantity}</td>
             <td>${item.description}</td>
             <td>${item.price}</td>
-            <td>${item.total}</td>
+            <td class="item-total">${item.total}</td>
+            <td>${item.button}</td>
         `;
-            tbody.appendChild(row);
-        }
-
-        alert("Transaction recalled successfully!");
+        tbody.appendChild(row);
     }
+
+    document.getElementById("total2").innerText = `${recalledTransaction.total}`;
+    alert("Transaction recalled successfully!");
+}
+
+
+
+
+
+
     // Set custom price for the last added item
 
 
@@ -1276,8 +1445,8 @@
         item.size,
         `₦${item.price.toFixed(2)}`,
         item.selling_unit,
+        item.quantity,
         item.qty_per_buying_unit,
-        new Date(item.date_added).toLocaleDateString(),
         `<button class='AddTOCartBtnSearch' onclick='addToCart("${item.barcode.replace(/"/g, "&quot;").replace(/'/g, "&#39;")}", ${item.id}, "${item.name.replace(/"/g, "&quot;").replace(/'/g, "&#39;")}", ${item.price})'>Add to Cart</button>`
     ]);
 });
@@ -1323,7 +1492,6 @@
                     showNotification(`${itemName} added to cart!`);
                 }
                 // Re-render the cart
-                renderCart();
             },
             error: function () {
                 alert('Failed to fetch items.');

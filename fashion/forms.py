@@ -4,7 +4,7 @@ from .models import Inventory, Category
 class InventoryForm(forms.ModelForm):
     class Meta:
         model = Inventory
-        fields = ['name', 'barcode' ,'icon','price', 'description','category']
+        fields = ['barcode','code','name','brand','category','size','quantity', 'cost_price','price','buying_unit','selling_unit','qty_per_buying_unit']
 
 from .models import Day
 

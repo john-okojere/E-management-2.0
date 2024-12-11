@@ -62,10 +62,13 @@ div.dataTables_wrapper div.dataTables_info {
 {% if user.role == "" %}
   
 {% endif %}            
-            {% if user.role == "Cashier" or user.level >= 3 %}
-            <li><a href="{% url 'arcade_cashier'%}"><i data-feather="user" style="width:18px; height:18px ;margin-right:10px"></i>POS</a></li>
+            {% if user.role == "Cashier"%}
+            <li><a href="{% url 'arcade_cashier'%}"><i data-feather="user" style="width:18px; height:18px ;margin-right:10px"></i>POS</a></li>            
+            {% if user.role ==  "Cashier" %}
             <li><a href="{% url 'end_of_day_report' %}"><i data-feather="inbox" style="width:18px; height:18px ;margin-right:10px"></i>End of Day</a></li>
-            {% elif user.role == "Manager" or user.level >= 3 %}
+            {% endif %}
+            {% endif %}
+            {% if user.role == "Manager" or user.level >= 3 %}
             <li><a href="{% url 'arcade_dashboard' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Dashboard</a></li>
             <li><a href="{% url 'manage_approvals' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Manage Approvals</a></li>
             <li><a href="{% url 'inventory_list' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Inventory</a></li>

@@ -44,9 +44,9 @@ urlpatterns = [
 
    
     # Approvals
-    path("manage-approvals/", views.manage_approvals, name="manage_approvals"),
-    path("approve-day/<int:day_id>/", views.approve_day, name="approve_day"),
-    path("approve-discount/<int:discount_id>/", views.approve_discount, name="approve_discount"),
+    path("manage-approvals/", views.manage_approvals, name="beauty_manage_approvals"),
+    path("approve-day/<int:day_id>/", views.approve_day, name="beauty_approve_day"),
+    path("approve-discount/<int:discount_id>/", views.approve_discount, name="beauty_approve_discount"),
 
     # Newly Added URLs
     # Sales Reports
@@ -80,5 +80,8 @@ urlpatterns = [
     # Inventory Adjustment
     path('quantity-increase/<int:sale_item_id>/', views.increase_quantity, name='beauty_increase_quantity'),
     path('quantity-decrease/<int:sale_item_id>/', views.decrease_quantity, name='beauty_decrease_quantity'),
+      path('update-sale-item/<int:sale_item_id>/', views.update_sale_item, name='update_sale_item'),
+    path('remove-sale-item/<int:sale_item_id>/', views.remove_sale_item, name='remove_sale_item'),
+
 ]
  

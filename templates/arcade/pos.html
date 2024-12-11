@@ -1001,6 +1001,9 @@
         document.getElementById("saleId").innerText = saleId;
     }
 
+
+    
+
     // Recall a held transaction
     function recallTransaction() {
         if (heldTransactions.length === 0) {
@@ -1030,6 +1033,11 @@
         document.getElementById("total").innerText = recalledTransaction.total;
         alert("Transaction recalled successfully!");
     }
+
+
+
+
+
     // Set custom price for the last added item
     function setPrice() {
         const price = parseFloat(prompt("Enter the new price for the last item:")) || 0;

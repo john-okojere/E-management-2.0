@@ -1,38 +1,85 @@
 {% extends "fashion/base.html" %}
+<br>
 {% load crispy_forms_tags %}
 
 {% block main_content %}
 <style>
-    .btn btn-primary{
-        background-color: white;
-        border: 1px solid rgb(123, 5, 5) !important;
-        color: black;
-        padding: 10px 20px;
-        border-radius: 2px;
-        text-decoration: none;
-        display: inline-block;
-        cursor: pointer;
-        font-size: 16px;
-        margin-right: 10px;
-        transition: backround-color 0.3s ease;
-    }
-
-    .btn-primary:hover{
-        background-color: blue !important;
-        color: white;
-    }
-
-    button.btn btn-primary{
-        border-color: rgb(123, 5, 5);
-    }
-
     .hey, h2{
         position: relative;
         top: 10px;
-        left: 8px;
+        left: 16px;
         color: black;
     }
 
+    input#id_start_amount{
+        margin-top: 1px !important;
+    }
+
+    #id_start_amount{
+        max-width:179px;
+        margin-left: 15px !important;
+        padding: 6px 5px;
+        border: 1px solid #000;
+        border-radius: 5px;
+        background-color: #f4f4f4;
+    }
+    
+    #id_start_amount p{
+        margin: 15px;         
+    }
+
+    #id_start_amount p label{
+        display: block;
+        font-weight: 700 !important;
+        margin-bottom: 50px !important; 
+    }
+
+    label{
+        display: inline-block;
+        margin-left: 16px;
+        font-weight: 700;
+        margin-top: 50px;
+        margin-bottom: -5px;
+    }
+
+    #id_start_amount p, #id_start_amount p textarea{
+        width: 20%;
+        padding: 5px;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: 700;
+        margin: 16px;
+        left: 16px;
+        box-sizing: border-box;
+    }
+
+    #id_start_amount p:focus{
+        border-color: black;
+        outline: none;
+        font-weight: bold;
+    }
+
+    button.btn.btn-primary{
+       margin-bottom: -185px; 
+    }
+
+    .btn.btn-primary{
+        background-color: white !important;
+        color:black !important;
+        padding: 10px 15px;
+        border: 1px solid rgb(123, 5, 5);
+        margin: 16px;
+        left: 16px;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: -100px !important;
+    }
+
+     .btn.btn-primary button:hover{
+        background-color: rgb(123, 5, 5) !important;
+        color: white !important;
+   }  
 </style>
 
 <div class="hey">

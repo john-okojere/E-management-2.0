@@ -1,184 +1,338 @@
 {% extends "fashion/base.html" %}
 
 {% block main_content %}
-<!-- DataTables CSS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-<!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- DataTables JS -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<div class="container my-4">
-    <h1>Sales History</h1>
+<div class="container">
+    <div class="container">
+        <br>
+        
+     {% if user.level >= 3 %}
+        <!-- Filter Section -->
+        <div class="filters">
+            <label for="cashierFilter">Cashier:</label>
+            <select id="cashierFilter" class="filter">
+                <option value="">All</option>
+                <!-- Dynamically populate cashier options via JavaScript -->
+            </select>
+    
+            <label for="statusFilter">Status:</label>
+            <select id="statusFilter" class="filter">
+                <option value="">All</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+            </select>
+    
+            <label for="paidFilter">Paid:</label>
+            <select id="paidFilter" class="filter">
+                <option value="">All</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+            </select>
+    
+            <label for="dateRange">Date Range:</label>
+            <input type="date" id="startDate" class="filter">
+            <input type="date" id="endDate" class="filter">
+        </div>
+     {% endif %}
+    <hr>
+        <!-- Chart -->
+       
+    
+    
+    <div class="container">
+        <h1>Sales History</h1>
+        <hr>
+        <!-- Data Table -->
+       <table id="salesTable" class="display" style="width:100%">
+    <thead>
+        <tr>
+            <th>Sale ID</th>
+            <th>Cashier</th>
+            <th>Completed</th>
+            <th>Total (₦)</th>
+            <th>Paid</th>
+            <th>Date</th>
+            <th>Actions</th> <!-- Add Actions Column -->
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Rows will be populated by JavaScript -->
+    </tbody>
+</table>
 
-    <!-- DataTable -->
-    <table id="salesTable" class="display table table-striped table-bordered" style="width:100%">
-        <thead class="table-dark">
-            <tr>
-                <th>Sale ID</th>
-                <th>Cashier</th>
-                <th>Completed</th>
-                <th>Total (₦)</th>
-                <th>Paid</th>
-                <th>Date</th>
-                <th>Actions</th> <!-- For print button -->
-            </tr>
-        </thead>
-        <tbody>
-            {% for sale in sales %}
-            <tr>
-                <td>{{ sale.id }}</td>
-                <td>{{ sale.cashier }}</td>
-                <td>{{ sale.completed }}</td>
-                <td>₦{{ sale.total }}</td>
-                <td>{{ sale.paid }}</td>
-                <td>{{ sale.date }}</td>
-                <td><button class="btn btn-primary btn-sm" onclick="printReceipt({{ sale.id }})">Print Receipt</button></td>
-            </tr>
-            {% endfor %}
-            <!-- Data will be populated via JavaScript -->
-        </tbody>
-    </table>
-</div>
+    </div>
+    
+    <script>
+        let salesData = [];
+        let salesChart;
+    
+        // Fetch Sales Data and Populate Table
+        function fetchSalesHistory() {
+            $.ajax({
+                url: '/cosmetic_store/sales-history/',
+                method: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    salesData = data.sales;
+                    populateCashierFilter();
+                    updateDataTable(salesData);
+                    updateSalesChart(salesData);
+                },
+                error: function() {
+                    alert('Failed to load sales history.');
+                }
+            });
+        }
+    
+        // Populate Cashier Filter Dropdown
+        function populateCashierFilter() {
+            const cashiers = [...new Set(salesData.map(sale => sale.cashier__username))];
+            const cashierFilter = $('#cashierFilter');
+            cashierFilter.empty();
+            cashierFilter.append('<option value="">All</option>');
+            cashiers.forEach(cashier => {
+                cashierFilter.append(`<option value="${cashier}">${cashier}</option>`);
+            });
+        }
+    
+        function updateDataTable(filteredData) {
+    const table = $('#salesTable').DataTable();
+    table.clear();
 
-<script>
-    // Fetch Sales Data and Populate Table
-    function fetchSalesHistory() {
-        $.ajax({
-            url: '/fashion/sales-history/', // Update with the correct URL
-            method: 'GET',
-            dataType: 'json',
-            success: function(data) {
-                updateDataTable(data.sales);
-            },
-            error: function() {
-            }
-        });
-    }
-
-    // Populate DataTable with fetched data
-    function updateDataTable(sales) {
-        const table = $('#salesTable').DataTable();
-        table.clear();
-
-        sales.forEach(sale => {
-            const printButton = `<button class="btn btn-primary btn-sm" onclick="printReceipt(${sale.id})">Print Receipt</button>`;
-            table.row.add([
-                sale.id,
-                sale.cashier,
-                sale.completed,
-                `₦${sale.total.toFixed(2)}`,
-                sale.paid,
-                sale.date,
-                printButton
-            ]);
-        });
-
-        table.draw();
-    }
-
-    // Function to fetch sale details and print receipt
-    function printReceipt(saleId) {
-        $.ajax({
-            url: `/fashion/sale/${saleId}/receipt/`, // Adjust to match your backend URL
-            method: 'GET',
-            success: function(data) {
-                const receiptWindow = window.open("", "Receipt", "width=400,height=600");
-                const receiptContent = `
-                    <html>
-                    <head>
-                        <title>Receipt for Sale #${saleId}</title>
-                        <style>
-                            body {
-                                font-family: Arial, sans-serif;
-                                margin: 20px;
-                                line-height: 1.6;
-                            }
-                            h1, h2 {
-                                text-align: center;
-                            }
-                            table {
-                                width: 100%;
-                                border-collapse: collapse;
-                                margin-top: 20px;
-                            }
-                            table, th, td {
-                                border: 1px solid #000;
-                            }
-                            th, td {
-                                padding: 10px;
-                                text-align: left;
-                            }
-                            .total {
-                                text-align: right;
-                                font-weight: bold;
-                                margin-top: 10px;
-                            }
-                            .footer {
-                                text-align: center;
-                                margin-top: 20px;
-                                font-size: 12px;
-                                color: #555;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <h1>Elegante fashion</h1>
-                        <p>No 1 Bria Street Ademola Adetokunbo Crescent<br>Wuse 2 Abuja</p>
-                        <p>07068686839</p>
-                        <p>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
-                        <h2>Receipt for Sale #${saleId}</h2>
-                        <p><strong>Cashier:</strong> ${data.cashier || 'N/A'}</p>
-                        <p><strong>Date:</strong> ${new Date(data.date).toLocaleString() || 'N/A'}</p>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Quantity</th>
-                                    <th>Price (₦)</th>
-                                    <th>Total (₦)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${data.items.map(item => `
-                                    <tr>
-                                        <td>${item.product || 'N/A'}</td>
-                                        <td>${item.quantity || 0}</td>
-                                        <td>${parseFloat(item.price).toFixed(2) || '0.00'}</td>
-                                        <td>${parseFloat(item.total).toFixed(2) || '0.00'}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                        <p class="total">Grand Total: ₦${parseFloat(data.total).toFixed(2) || '0.00'}</p>
-                        <div class="footer">
-                            <p>Thank you for shopping with Elegante fashion!</p>
-                            <p>Powered by Digi02.org</p>
-                        </div>
-                    </body>
-                    </html>
-                `;
-
-                // Write and print
-                receiptWindow.document.write(receiptContent);
-                receiptWindow.document.close();
-                receiptWindow.print();
-            },
-            error: function() {
-                alert('Failed to fetch receipt details.');
-            }
-        });
-    }
-
-    // Initialize DataTable and Fetch Data
-    $(document).ready(function() {
-        $('#salesTable').DataTable({
-            dom: 'Bfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
-        });
-        fetchSalesHistory();
+    filteredData.forEach(sale => {
+        
+        const printButton = `<button class="btn btn-primary btn-sm" onclick="printReceipt(${sale.id})">Print Receipt</button>`;
+        table.row.add([
+            sale.id,
+            sale.cashier__username,
+            sale.completed ? 'Yes' : 'No',
+            `₦${parseFloat(sale.total).toFixed(2)}`,
+            sale.paid ? 'Yes' : 'No',
+            new Date(sale.date).toLocaleString(),
+            printButton // Add the button
+        ]);
     });
-</script>
+
+    table.draw();
+}
+// Function to fetch sale details and print receipt using POST method
+function printReceipt(saleId) {
+    $.ajax({
+        url: `/cosmetic_store/sale/receipt/${saleId}/`, // Adjust to match your backend URL
+        method: 'POST', // Change to POST
+        contentType: 'application/json', // Specify content type
+        data: JSON.stringify({ saleId: saleId }), // Send the saleId in the request body
+        success: (data) => {
+            const receiptWindow = window.open("", "Receipt", "width=400,height=600");
+            const receiptContent = `
+                <html>
+                <head>
+                    <title>Receipt for Sale #${saleId}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                            line-height: 1.6;
+                        }
+                        h1, h2 {
+                            text-align: center;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                        }
+                        table, th, td {
+                            border: 1px solid #000;
+                        }
+                        th, td {
+                            padding: 10px;
+                            text-align: left;
+                        }
+                        .total {
+                            text-align: right;
+                            font-weight: bold;
+                            margin-top: 10px;
+                        }
+                        .footer {
+                            text-align: center;
+                            margin-top: 20px;
+                            font-size: 12px;
+                            color: #555;
+                        }
+                    </style>
+                </head>
+                <body>
+           <center>         <h1>Elegante fashion Store</h1>
+                     <p>No 1 Bria Street Ademola Adetokunbo Crescent<br>Wuse 2 Abuja</p>
+                    <p>07068686839</p>
+                    <p>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+              </center>  
+                    <h2>Receipt for Sale #${saleId}</h2>
+                    <p><strong>Cashier:</strong> ${data.cashier || 'N/A'}</p>
+                    <p><strong>Date:</strong> ${new Date(data.date).toLocaleString() || 'N/A'}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Price (₦)</th>
+                                <th>Total (₦)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.items
+                                .map(
+                                    (item) => `
+                                <tr>
+                                    <td>${item.product || 'N/A'}</td>
+                                    <td>${item.quantity || 0}</td>
+                                    <td>${parseFloat(item.price).toFixed(2) || '0.00'}</td>
+                                    <td>${parseFloat(item.total).toFixed(2) || '0.00'}</td>
+                                </tr>`
+                                )
+                                .join('')}
+                        </tbody>
+                    </table>
+                    <p class="total">Grand Total: ₦${parseFloat(data.total).toFixed(2) || '0.00'}</p>
+                    <div class="footer">
+                        <p>Thank you for shopping with Elegante Arcade!</p>
+                        <p>Powered by Digi02.org</p>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            // Write content and print
+            receiptWindow.document.write(receiptContent);
+            receiptWindow.document.close();
+            receiptWindow.print();
+        },
+        error: (xhr, status, error) => {
+            console.error(`Error fetching receipt details: ${status} - ${error}`);
+            alert('Failed to fetch receipt details. Please try again.');
+        },
+    });
+}
+
+    
+        // Filter Data Based on Selections
+        function filterSalesData() {
+            const cashierFilter = $('#cashierFilter').val();
+            const statusFilter = $('#statusFilter').val();
+            const paidFilter = $('#paidFilter').val();
+            const startDate = new Date($('#startDate').val());
+            const endDate = new Date($('#endDate').val());
+    
+            const filteredData = salesData.filter(sale => {
+                const matchesCashier = !cashierFilter || sale.cashier__user__worker_id === cashierFilter;
+                const matchesStatus =
+                    !statusFilter ||
+                    (statusFilter === 'completed' && sale.completed) ||
+                    (statusFilter === 'pending' && !sale.completed);
+                const matchesPaid =
+                    !paidFilter ||
+                    (paidFilter === 'yes' && sale.paid) ||
+                    (paidFilter === 'no' && !sale.paid);
+                const matchesDateRange = 
+                    (!startDate || new Date(sale.date) >= startDate) &&
+                    (!endDate || new Date(sale.date) <= endDate);
+    
+                return matchesCashier && matchesStatus && matchesPaid && matchesDateRange;
+            });
+    
+            updateDataTable(filteredData);
+            updateSalesChart(filteredData);
+        }
+    
+        // Update Chart with Filtered Data
+        function updateSalesChart(filteredData) {
+            const labels = [];
+            const totals = [];
+            const completedTotals = [];
+            const pendingTotals = [];
+            const paidTotals = [];
+            const unpaidTotals = [];
+    
+            filteredData.forEach(sale => {
+                labels.push(new Date(sale.date).toLocaleDateString());
+                totals.push(parseFloat(sale.total));
+                if (sale.completed) completedTotals.push(parseFloat(sale.total));
+                if (!sale.completed) pendingTotals.push(parseFloat(sale.total));
+                if (sale.paid) paidTotals.push(parseFloat(sale.total));
+                if (!sale.paid) unpaidTotals.push(parseFloat(sale.total));
+            });
+    
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            if (salesChart) {
+                salesChart.destroy(); // Destroy existing chart if any
+            }
+            salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Sales (₦)',
+                            data: totals,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Completed Sales (₦)',
+                            data: completedTotals,
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Pending Sales (₦)',
+                            data: pendingTotals,
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Paid Sales (₦)',
+                            data: paidTotals,
+                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Unpaid Sales (₦)',
+                            data: unpaidTotals,
+                            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                            borderColor: 'rgba(255, 206, 86, 1)',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    
+        // Initialize DataTable and Fetch Data
+        $(document).ready(function() {
+            $('#salesTable').DataTable();
+            fetchSalesHistory();
+    
+            // Bind filter change events
+            $('.filter').on('change', filterSalesData);
+        });
+    </script>
+    
+</div>
 {% endblock %}

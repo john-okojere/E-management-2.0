@@ -1,8 +1,6 @@
 {% extends 'base.html' %}
-{% load static %}
 
 {% block content %}
-<script src="{% static 'assets/js/jquery-3.7.1.min.js' %}"></script>
 <style>
     .container.mt-4{
         margin: auto;
@@ -43,31 +41,36 @@
     color: #d02222;
 }
 
+
 /* Main content area */
 .main-content {
     flex-grow: 1;
     background-color: #f4f4f4;
     min-height: 85%;
+    
 }
 div.dataTables_wrapper div.dataTables_info {
     padding-top: 68px !important;
 }
 </style>
 <div class="container-with-sidebar" style="display: flex;">
-        <!-- Sidebar -->
+    <!-- Sidebar -->
     <div class="sidebar">
         <ul class="sidebar-menu">
             <li>
-        <h3>Fashion Store</h3>
+                <h3>Fashion Store</h3>
             </li>
+  
+            {% if user.role == "Cashier" or user.level >= 3 %}
             <li><a href="{% url 'fashion_cashier'%}"><i data-feather="user" style="width:18px; height:18px ;margin-right:10px"></i>POS</a></li>
-            
-            <li><a href="{% url 'fashion_sales_history' %}"> <i data-feather="shopping-cart" style="width:18px; height:18px ;margin-right:10px"></i>Sales</a></li>
-            {% if user.role == "Cashier" %}{% else %}
-            <li><a href="{% url 'fashion_inventory_list' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Inventory</a></li>
-            <li><a href="{% url 'fashion_audit_report' %}"><i data-feather="bar-chart-2"  style="width:18px; height:18px ;margin-right:10px"></i>Reports</a></li>
-            {% endif %}
             <li><a href="{% url 'fashion_end_of_day_report' %}"><i data-feather="inbox" style="width:18px; height:18px ;margin-right:10px"></i>End of Day</a></li>
+            {% endif %}
+            {% if user.role == "Manager" or user.level >= 3 %}
+            <li><a href="{% url 'fashion_dashboard' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Dashboard</a></li>
+            <li><a href="{% url 'fashion_manage_approvals' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Manage Approvals</a></li>
+            <li><a href="{% url 'fashion_inventory_list' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Inventory</a></li>
+            {% endif %}
+            <li><a href="{% url 'fashion_sales_history' %}"> <i data-feather="shopping-cart" style="width:18px; height:18px ;margin-right:10px"></i>Sales</a></li>
 
         </ul>
     </div>

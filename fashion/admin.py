@@ -1,15 +1,15 @@
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 from import_export import resources
-from .models import Inventory, Sale, SaleItem, Receipt, SaleDiscount, SaleItemDiscount, Day
+from .models import Inventory, Sale, Payment, SaleItem, Receipt, SaleDiscount, SaleItemDiscount, Day
 
 
-# Define resources for each model (optional, for finer control)
+# Define resources for each model (optional for custom control)
 class InventoryResource(resources.ModelResource):
     class Meta:
         model = Inventory
-        fields = ('id', 'name', 'price', 'staff', 'date', 'description')
-        export_order = ('id', 'name', 'price', 'staff', 'date', 'description')
+        fields = ('id','barcode','code','name','brand','category','size','quantity', 'cost_price','price','buying_unit','selling_unit','qty_per_buying_unit')
+        export_order = ('id','barcode','code','name','brand','category','size','quantity', 'cost_price','price','buying_unit','selling_unit','qty_per_buying_unit')
 
 
 class SaleResource(resources.ModelResource):
@@ -29,39 +29,38 @@ class SaleItemResource(resources.ModelResource):
 class ReceiptResource(resources.ModelResource):
     class Meta:
         model = Receipt
-        fields = ('id', 'receipt_number', 'sale', 'created_at')
-        export_order = ('id', 'receipt_number', 'sale', 'created_at')
+        fields = ('receipt_number', 'sale', 'created_at')
+        export_order = ('receipt_number', 'sale', 'created_at')
 
 
 class SaleDiscountResource(resources.ModelResource):
     class Meta:
         model = SaleDiscount
-        fields = ('id', 'sale', 'cashier', 'proposed_discount', 'approved', 'approved_by')
-        export_order = ('id', 'sale', 'cashier', 'proposed_discount', 'approved', 'approved_by')
+        fields = ('sale', 'cashier', 'proposed_discount', 'approved', 'approved_by')
+        export_order = ('sale', 'cashier', 'proposed_discount', 'approved', 'approved_by')
 
 
 class SaleItemDiscountResource(resources.ModelResource):
     class Meta:
         model = SaleItemDiscount
-        fields = ('id', 'sale', 'cashier', 'proposed_discount', 'approved', 'approved_by')
-        export_order = ('id', 'sale', 'cashier', 'proposed_discount', 'approved', 'approved_by')
+        fields = ('sale', 'cashier', 'proposed_discount', 'approved', 'approved_by')
+        export_order = ('sale', 'cashier', 'proposed_discount', 'approved', 'approved_by')
 
 
 class DayResource(resources.ModelResource):
     class Meta:
         model = Day
-        fields = ('id', 'staff', 'start_amount', 'end_amount', 'start_time', 'end_time', 'no_of_sales', 'date')
-        export_order = ('id', 'staff', 'start_amount', 'end_amount', 'start_time', 'end_time', 'no_of_sales', 'date')
+        fields = ('staff', 'start_amount', 'end_amount', 'start_time', 'end_time', 'no_of_sales', 'date')
+        export_order = ('staff', 'start_amount', 'end_amount', 'start_time', 'end_time', 'no_of_sales', 'date')
 
 
 # Admin classes with ImportExportModelAdmin
-
 @admin.register(Inventory)
 class InventoryAdmin(ImportExportModelAdmin):
     resource_class = InventoryResource
-    list_display = ('name', 'price', 'staff', 'date')
+    list_display = ('barcode','code','name','brand','category','size','quantity', 'cost_price','price','buying_unit','selling_unit','qty_per_buying_unit')
     list_filter = ('date', 'staff')
-    search_fields = ('name', 'description', 'staff__user__worker_id')
+    search_fields = ('name', 'description', 'staff__username')
     ordering = ('-date',)
 
 
@@ -124,3 +123,10 @@ class DayAdmin(ImportExportModelAdmin):
     list_display = ('staff', 'start_amount', 'end_amount', 'start_time', 'end_time', 'no_of_sales', 'date')
     list_filter = ('staff', 'date')
     search_fields = ('staff__username', 'start_amount', 'end_amount')
+
+
+@admin.register(Payment)
+class PaymentAdmin(ImportExportModelAdmin):
+    list_display = ('cashier', 'amount', 'payment_type', 'sale', 'paid_by', 'date')
+    list_filter = ('cashier', 'date')
+    search_fields = ('cashier__username', 'amount')

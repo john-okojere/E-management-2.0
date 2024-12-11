@@ -64,8 +64,12 @@ class RoleBasedRedirectMiddleware:
                 f'/{user_section.lower()}/make-payment/',
                 f'/{user_section.lower()}/end_day/',
                 f'/{user_section.lower()}/complete-sale/',
+                f'/{user_section.lower()}/api/inventory/',
                 f'/{user_section.lower()}/quantity-increase/<int:sale_item_id>/',
-                f'/{user_section.lower()}/quantity-decrease/<int:sale_item_id>/',
+                f'/{user_section.lower()}/quantity-increase/<int:sale_item_id>/',
+                f'/{user_section.lower()}/update-sale-item/<int:sale_item_id>/',
+                f'/{user_section.lower()}/remove-sale-item/<int:sale_item_id>/',
+
             ])
         elif user_role == 'Manager' and user_section and user_section.lower() in SECTIONS:
             allowed_paths.extend([
@@ -77,6 +81,7 @@ class RoleBasedRedirectMiddleware:
                 f'/{user_section.lower()}/api/sales-growth/',
                 f'/{user_section.lower()}/api/sales-performance',
                 f'/{user_section.lower()}/manage-approvals/',
+                f'/{user_section.lower()}/api/inventory/',
                 f'/{user_section.lower()}/export/pdf/',
                 f'/{user_section.lower()}/export/excel/',
                 f'/{user_section.lower()}/export/doc/',
@@ -84,12 +89,7 @@ class RoleBasedRedirectMiddleware:
             ])
 
         # Include dynamic URL patterns
-        try:
-            match = resolve(request.path)
-            if match.url_name == 'sale_receipt' and user_section:
-                allowed_paths.append(f'/{user_section.lower()}/sale/receipt/<int:sale_id>/')
-        except Exception:
-            pass
+        allowed_paths.append(f'/{user_section.lower()}/sale/receipt/<int:sale_id>/')
 
         path = request.path
 

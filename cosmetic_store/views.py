@@ -15,7 +15,7 @@ from django.http import HttpResponse
 from .forms import StartDayForm
 
 @login_required
-def start_day(request):
+def start_day(request): 
     # Check if there is any day that has not ended
     unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
     if unfinished_day:
@@ -42,7 +42,7 @@ def manage_approvals(request):
         "pending_days": pending_days,
         "pending_discounts": pending_discounts,
     }
-    return render(request, "arcade/approvals/manage_approvals.html", context)
+    return render(request, "beauty/approvals/manage_approvals.html", context)
 
 @login_required
 def cashier(request):
@@ -117,6 +117,7 @@ def update_inventory(request, pk):
     return render(request, 'beauty/inventory/update_inventory.html', {'form': form})
 
 
+
 # Delete Inventory View
 def delete_inventory(request, pk):
     item = get_object_or_404(Inventory, pk=pk)
@@ -147,15 +148,17 @@ from django.db.models import F
 def add_sale_item(request):
     if request.method == 'POST':
         sale_id = request.POST.get('sale_id')
+        print(sale_id)
         product_id = request.POST.get('product_id')
         quantity = int(request.POST.get('quantity'))
-        price = float(request.POST.get('price'))
-        total = quantity * price
+        
 
         # Fetch the sale and product
         sale = Sale.objects.get(id=sale_id)
         product = Inventory.objects.get(id=product_id)
 
+        price = float(product.price)
+        total = quantity * price
 
         # Create the sale item
         sale_item = SaleItem.objects.create(
@@ -176,9 +179,18 @@ def add_sale_item(request):
 
         return JsonResponse({
             'status': 'success',
-            'sale_item_id': sale_item.id,
+            'sale_item': {
+                'id': sale_item.id,
+                'product': product.name,
+                'quantity': quantity,
+                'price': price,
+                'total': total
+            },
             'updated_sale_total': float(sale.total)
         })
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+    
 def complete_sale(request):
     if request.method == 'POST':
         sale_id = request.POST.get('sale_id')
@@ -192,6 +204,8 @@ def complete_sale(request):
             return JsonResponse({'status': 'success', 'message': 'Sale marked as completed.'})
         except Sale.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Sale not found.'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})  
+
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -238,55 +252,22 @@ def apply_sale_item_discount(request):
 from django.db.models import Sum
 from django.db.models.functions import TruncDay
 
-def sales_history(request):
-    # Filter completed sales
-    sales = Sale.objects.filter(completed=True).order_by('-date')
-    if request.user.role == "cashier":
-        sales = Sale.objects.filter(completed=True, cashier= request.user).order_by('-date')
-    sales_data = []
-
-    # Sales data for table
-    for sale in sales:
-        sales_data.append({
-            'id': sale.id,
-            'cashier': sale.cashier.username,
-            'total': float(sale.total),
-            'date': sale.date.strftime('%Y-%m-%d %H:%M:%S'),
-        })
-
-    # Summarize sales by date for the graph
-    graph_data = (
-        Sale.objects.filter(completed=True)
-        .annotate(day=TruncDay('date'))
-        .values('day')
-        .annotate(total=Sum('total'))
-        .order_by('day')
-    )
-
-    # Convert graph data into labels and values
-    graph_labels = [entry['day'].strftime('%Y-%m-%d') for entry in graph_data]
-    graph_values = [float(entry['total']) for entry in graph_data]
-
-    if request.is_ajax():
-        return JsonResponse({'sales': sales_data, 'graph_labels': graph_labels, 'graph_values': graph_values})
-    return render(request, 'beauty/sales_history.html', {
-        'sales': sales_data,
-        'graph_labels': graph_labels,
-        'graph_values': graph_values,
-    })
-
 from django.db.models import Sum
 from django.db.models.functions import TruncDay
 from django.db.models import Sum
 
 def sales_history(request):
+    unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
+    if not unfinished_day and request.user.role == "Cashier":
+        return redirect('beauty_start_day')  # Redirect to the start day view if no day has started
+
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':  # Check for AJAX request
         # Handle AJAX request for sales data
         sales = Sale.objects.all() # Query all sales data
         if request.user.role == "Cashier":
-            sales = Sale.objects.filter(completed=True, cashier= request.user).values('id', 'cashier__username', 'completed', 'total', 'paid' ,'date')
+            sales = Sale.objects.filter(completed=True,day = unfinished_day, cashier= request.user).values('id', 'cashier__username', 'completed', 'total', 'paid' ,'date')
             sale = Sale.objects.filter(completed=True, cashier= request.user).order_by('-date')[:10]
-        elif request.user.level >= 3:
+        elif request.user.level >= 3 or request.user.role == "Manager":
             sales = Sale.objects.filter(completed=True).values('id', 'cashier__username', 'completed', 'total', 'paid' ,'date')
             sale = Sale.objects.filter(completed=True).order_by('-date')[:10]
         sales_list = list(sales)  # Convert queryset to list of dictionaries
@@ -295,9 +276,9 @@ def sales_history(request):
     # For non-AJAX requests, render the template
     if request.user.role == "Cashier":
              return render(request, 'beauty/sales_history.html', { 
-                'sales_data': Sale.objects.filter(completed=True, cashier= request.user).order_by('-date')[:10]  # Example: Latest 10 sales
+                'sales_data': Sale.objects.filter(completed=True,day = unfinished_day ,cashier= request.user).order_by('-date')[:10]  # Example: Latest 10 sales
             })
-    elif request.user.level >= 3:
+    elif request.user.level >= 3 or request.user.role == "Manager":
         return render(request, 'beauty/sales_history.html', { 
             'sales_data': Sale.objects.filter(completed=True).order_by('-date')[:10]  # Example: Latest 10 sales
         })
@@ -481,37 +462,36 @@ import json
 
 @csrf_exempt
 def sale_receipt(request, sale_id):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            if not sale_id:
-                return JsonResponse({"error": "Sale ID is required."}, status=400)
-            
-            sale = get_object_or_404(Sale, id= sale_id)
-            sale_items = sale.items.all()
+    sale = get_object_or_404(Sale, id= sale_id)
+    sale_items = sale.beauty_items.all()
+    print("dcsxz")
+    arcade_payment = Payment.objects.filter(sale=sale).last()
+    print(arcade_payment)
 
-            receipt_data = {
-                "id": sale.id,
-                "cashier": sale.cashier.username,
-                "date": sale.date.strftime("%Y-%m-%d %H:%M:%S"),
-                "total": sale.total,
-                "items": [
-                    {
-                        "product": item.product.name,
-                        "quantity": item.quantity,
-                        "price": item.price,
-                        "total": item.total
-                    }
-                    for item in sale_items
-                ]
+    receipt_data = {
+        "id": sale.id,
+        "cashier": sale.cashier.username,
+        "cashier_id": sale.cashier.id,
+        "date": sale.date.strftime("%Y-%m-%d %H:%M:%S"),
+        "total": sale.total,
+        "items": [
+            {
+                "product": item.product.name,
+                "quantity": item.quantity,
+                "price": item.price,
+                "total": item.total
             }
-            return JsonResponse(receipt_data)
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON format."}, status=400)
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-    return JsonResponse({"error": "Invalid request method."}, status=405)
-
+            for item in sale_items
+        ],
+        'payment':{
+            'id': arcade_payment.id,
+            'amount': arcade_payment.amount,
+            'change': arcade_payment.amount - arcade_payment.sale.total,
+            'by': arcade_payment.paid_by,
+            'type': arcade_payment.payment_type,
+        }
+    }
+    return JsonResponse(receipt_data)
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -757,10 +737,19 @@ def dashboard(request):
             sale__date__year=current_year
         ).count(),
     }
-
+    # Calculate total profit for the current month
+    total_profit = SaleItem.objects.filter(
+        sale__date__month=current_month,
+        sale__date__year=current_year
+    ).aggregate(
+        total_revenue=Sum(F('quantity') * F('price')),
+        total_cost=Sum(F('quantity') * F('product__cost_price'))
+    )
+    total_profit = (total_profit['total_revenue'] or 0) - (total_profit['total_cost'] or 0)
     context = {
        
         "total_sales": total_sales,
+        "total_profit": total_profit,
         "total_discounts": total_discounts,
         "pending_days": pending_days,
         "pending_discounts": pending_discounts,
@@ -771,6 +760,7 @@ def dashboard(request):
         "sales_by_month": sales_by_month,
         "discount_status": discount_status,
     }
+    print(context)
     return render(request, "beauty/dashboard.html", context)
 
 
@@ -1096,7 +1086,7 @@ def approve_day(request, day_id):
         day.save()
         print(day)
         messages.success(request, f"Day {day.id} approved successfully.")
-        return redirect("manage_approvals")
+        return redirect("beauty_manage_approvals")
     # Calculate metrics
     sales = Sale.objects.filter(day=day)
     total_sales = sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
@@ -1141,7 +1131,7 @@ def approve_day(request, day_id):
         'inventory_impact': inventory_impact,
         "day": day
     }
-    return render(request, "arcade/approvals/approve_day.html", context)
+    return render(request, "beauty/approvals/approve_day.html", context)
 
 
 @login_required
@@ -1153,8 +1143,8 @@ def approve_discount(request, discount_id):
         discount.approved_by = request.user
         discount.save()
         messages.success(request, f"Discount for sale {discount.sale.id} approved successfully.")
-        return redirect("manage_approvals")
-    return render(request, "arcade/approvals/approve_discount.html", {"discount": discount, 'discount_percentage': round(discount_percentage, 2)})
+        return redirect("beauty_manage_approvals")
+    return render(request, "beauty/approvals/approve_discount.html", {"discount": discount, 'discount_percentage': round(discount_percentage, 2)})
 
 from .models import Refund
 
@@ -1215,7 +1205,7 @@ def upload_inventory(request):
                         selling_unit=row['selling_unit'],
                         qty_per_buying_unit=row['qty_per_buying_unit'],
                     )
-            return redirect('inventory')  # Redirect to the inventory page
+            return redirect('beauty_inventory_list')  # Redirect to the inventory page
 
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
@@ -1284,3 +1274,43 @@ def decrease_quantity(request, sale_item_id):
         return JsonResponse({'status': 'success', 'new_quantity': sale_item.quantity, 'new_total': sale_item.total})
     else:
         return JsonResponse({'status': 'error', 'message': 'Quantity cannot be less than 1'})
+
+def update_sale_item(request, sale_item_id):
+    sale_item = get_object_or_404(SaleItem, id=sale_item_id)
+    try:
+        # Convert quantity to integer
+        quantity = int(request.POST.get('quantity', 0))  # Default to 0 if not provided
+        
+        # Ensure quantity is valid
+        if quantity <= 0:
+            return JsonResponse({'status': 'error', 'message': 'Quantity must be greater than 0'}, status=400)
+        
+        # Update the sale item
+        sale_item.quantity = quantity
+        sale_item.total = Decimal(sale_item.quantity) * sale_item.price
+        sale_item.save()
+        
+        # Optionally, update the sale's total amount
+        sale = sale_item.sale
+        sale.total = sum(item.total for item in sale.beauty_items.all())
+        sale.save()
+        return JsonResponse({'status': 'success', 'message': 'Sale item updated successfully', 'updated_sale_total': float(sale.total)})
+    except (ValueError, TypeError) as e:
+        return JsonResponse({'status': 'error', 'message': f'Invalid quantity: {e}'}, status=400)
+
+def remove_sale_item(request, sale_item_id):
+    if request.method == 'POST':
+        sale_item = get_object_or_404(SaleItem, id=sale_item_id)
+        sale = sale_item.sale
+        sale_item.delete()
+
+        # Recalculate the total sale amount
+        sale.total = sum(item.total for item in sale.beauty_items.all())
+        sale.save()
+
+        return JsonResponse({
+            'status': 'success',
+            'updated_sale_total': sale.total,
+            'message': f'Item with ID {sale_item_id} removed successfully'
+        })
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)

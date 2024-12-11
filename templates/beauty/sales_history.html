@@ -104,6 +104,7 @@
     table.clear();
 
     filteredData.forEach(sale => {
+        
         const printButton = `<button class="btn btn-primary btn-sm" onclick="printReceipt(${sale.id})">Print Receipt</button>`;
         table.row.add([
             sale.id,
@@ -121,7 +122,7 @@
 // Function to fetch sale details and print receipt using POST method
 function printReceipt(saleId) {
     $.ajax({
-        url: `/cosmetic_store/sale/${saleId}/receipt/`, // Adjust to match your backend URL
+        url: `/cosmetic_store/sale/receipt/${saleId}/`, // Adjust to match your backend URL
         method: 'POST', // Change to POST
         contentType: 'application/json', // Specify content type
         data: JSON.stringify({ saleId: saleId }), // Send the saleId in the request body
