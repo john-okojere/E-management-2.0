@@ -6,8 +6,8 @@ from users.models import CustomUser
 
 class Day(models.Model):
     staff = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    start_amount = models.DecimalField(max_digits=100, decimal_places=2)
-    end_amount = models.DecimalField(max_digits=100, decimal_places=2, null=True, blank=True)
+    start_amount = models.DecimalField(max_digits=60, decimal_places=2)
+    end_amount = models.DecimalField(max_digits=60, decimal_places=2, null=True, blank=True)
     start = models.BooleanField(default=True)
     end = models.BooleanField(default=False)
     start_time = models.TimeField(null=True, blank=True)
@@ -31,7 +31,7 @@ class Inventory(models.Model):
     staff = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     icon = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
-    price = models.DecimalField(max_digits=100, decimal_places=2)
+    price = models.DecimalField(max_digits=60, decimal_places=2)
     description = models.CharField(max_length=255, blank=True)
     date = models.DateTimeField(auto_now_add=True)
 
@@ -44,7 +44,7 @@ class Inventory(models.Model):
 class Sale(models.Model):
     cashier = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  # Who handled the sale
     day = models.ForeignKey(Day, on_delete=models.CASCADE)
-    total = models.DecimalField(max_digits=100, decimal_places=2)  # Total amount for the sale
+    total = models.DecimalField(max_digits=60, decimal_places=2)  # Total amount for the sale
     completed = models.BooleanField(default=False)
     paid = models.BooleanField(default=False)
     date = models.DateTimeField(auto_now_add=True)  # When the sale occurred
@@ -56,8 +56,8 @@ class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="items")  # Reference to the sale
     product = models.ForeignKey(Inventory, on_delete=models.CASCADE)  # The product being sold
     quantity = models.PositiveIntegerField()  # Quantity sold
-    price = models.DecimalField(max_digits=100, decimal_places=2)  # Price per unit
-    total = models.DecimalField(max_digits=100, decimal_places=2)  # Total price for this line item (price * quantity)
+    price = models.DecimalField(max_digits=60, decimal_places=2)  # Price per unit
+    total = models.DecimalField(max_digits=60, decimal_places=2)  # Total price for this line item (price * quantity)
 
     def save(self, *args, **kwargs):
         self.total = self.price * self.quantity
@@ -77,14 +77,14 @@ class Receipt(models.Model):
 class SaleDiscount(models.Model):
     cashier = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE)
-    proposed_discount = models.DecimalField(max_digits=100, decimal_places=2)
+    proposed_discount = models.DecimalField(max_digits=60, decimal_places=2)
     approved = models.BooleanField(default=False)
     approved_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='sale_approver')
 
 class SaleItemDiscount(models.Model):
     cashier = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     sale = models.ForeignKey(SaleItem, on_delete=models.CASCADE)
-    proposed_discount = models.DecimalField(max_digits=100, decimal_places=2)
+    proposed_discount = models.DecimalField(max_digits=60, decimal_places=2)
     approved = models.BooleanField(default=False)
     approved_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='saleitem_approver')
 
@@ -99,7 +99,7 @@ class Payment(models.Model):
     ]
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='arcade_payment')
     cashier = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=100, decimal_places=2)
+    amount = models.DecimalField(max_digits=60, decimal_places=2)
     payment_type = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
     paid_by = models.CharField(max_length=100)
     date = models.DateTimeField(auto_now_add=True)
@@ -110,7 +110,7 @@ class Payment(models.Model):
 
 class Refund(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=100, decimal_places=2)
+    amount = models.DecimalField(max_digits=60, decimal_places=2)
     refunded_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     date = models.DateTimeField(auto_now_add=True)
 

@@ -52,6 +52,7 @@
         <tr>
             <th>Sale ID</th>
             <th>Cashier</th>
+            <th>Waiter</th>
             <th>Completed</th>
             <th>Total (₦)</th>
             <th>Paid</th>
@@ -73,7 +74,7 @@
         // Fetch Sales Data and Populate Table
         function fetchSalesHistory() {
             $.ajax({
-                url: '/arcade/sales-history/',
+                url: '/restaurant/sales-history/',
                 method: 'GET',
                 dataType: 'json',
                 success: function(data) {
@@ -104,10 +105,12 @@
     table.clear();
 
     filteredData.forEach(sale => {
+        console.log(sale)
         const printButton = `<button class="btn btn-primary btn-sm" onclick="printReceipt(${sale.id})">Print Receipt</button>`;
         table.row.add([
             sale.id,
             sale.cashier__username,
+            sale.waiter__username,
             sale.completed ? 'Yes' : 'No',
             `₦${parseFloat(sale.total).toFixed(2)}`,
             sale.paid ? 'Yes' : 'No',
@@ -122,7 +125,7 @@
 // Function to fetch sale details and print receipt
 function printReceipt(saleId) {
     $.ajax({
-        url: `/arcade/sale/${saleId}/receipt/`, // Adjust to match your backend URL
+        url: `/resturant/sale/${saleId}/receipt/`, // Adjust to match your backend URL
         method: 'GET',
         success: (data) => {
             const receiptWindow = window.open("", "Receipt", "width=400,height=600");
@@ -227,7 +230,7 @@ function printReceipt(saleId) {
             const endDate = new Date($('#endDate').val());
     
             const filteredData = salesData.filter(sale => {
-                const matchesCashier = !cashierFilter || sale.cashier__user__worker_id === cashierFilter;
+                const matchesCashier = !cashierFilter || sale.cashier === cashierFilter;
                 const matchesStatus =
                     !statusFilter ||
                     (statusFilter === 'completed' && sale.completed) ||

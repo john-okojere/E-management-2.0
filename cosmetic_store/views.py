@@ -6,12 +6,7 @@ from .models import Inventory
 from .forms import InventoryForm, StartDayForm, EndDayForm, CategoryForm
 from users.models import CustomUser
 from .models import Day
-
-from reportlab.pdfgen import canvas
-from openpyxl import Workbook
-from docx import Document
 from django.http import HttpResponse
-
 from .forms import StartDayForm
 
 @login_required

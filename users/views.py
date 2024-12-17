@@ -49,8 +49,8 @@ def choose_section(request):
     elif user.role == "Manager":
         if user.section == 'arcade':
             return redirect('arcade_manager')
-        # elif user.section.title() == 'Restaurant':
-        #     return redirect('resturant_manager')
+        elif user.section.title() == 'Restaurant':
+            return redirect('resturant_dashboard')
         elif user.section.lower() == 'cosmetic_store':
             return redirect('beauty_manager')
         # elif user.section.lower() == 'salon':
@@ -61,6 +61,9 @@ def choose_section(request):
         #     return redirect('lounge_manager')
         # elif user.section.lower() == 'spa':
         #     return redirect('spa_manager')
+    elif user.role == 'Waiter':
+        if user.section.title() == 'Restaurant':
+            return redirect('resturant_waiter')
 
     return redirect('dashboard')
 

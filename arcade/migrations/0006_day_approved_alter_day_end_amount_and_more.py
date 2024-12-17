@@ -21,53 +21,53 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='day',
             name='end_amount',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=100, null=True),
+            field=models.DecimalField(blank=True, decimal_places=2, max_digits=60, null=True),
         ),
         migrations.AlterField(
             model_name='day',
             name='start_amount',
-            field=models.DecimalField(decimal_places=2, max_digits=100),
+            field=models.DecimalField(decimal_places=2, max_digits=60),
         ),
         migrations.AlterField(
             model_name='inventory',
             name='price',
-            field=models.DecimalField(decimal_places=2, max_digits=100),
+            field=models.DecimalField(decimal_places=2, max_digits=60),
         ),
         migrations.AlterField(
             model_name='payment',
             name='amount',
-            field=models.DecimalField(decimal_places=2, max_digits=100),
+            field=models.DecimalField(decimal_places=2, max_digits=60),
         ),
         migrations.AlterField(
             model_name='sale',
             name='total',
-            field=models.DecimalField(decimal_places=2, max_digits=100),
+            field=models.DecimalField(decimal_places=2, max_digits=60),
         ),
         migrations.AlterField(
             model_name='salediscount',
             name='proposed_discount',
-            field=models.DecimalField(decimal_places=2, max_digits=100),
+            field=models.DecimalField(decimal_places=2, max_digits=60),
         ),
         migrations.AlterField(
             model_name='saleitem',
             name='price',
-            field=models.DecimalField(decimal_places=2, max_digits=100),
+            field=models.DecimalField(decimal_places=2, max_digits=60),
         ),
         migrations.AlterField(
             model_name='saleitem',
             name='total',
-            field=models.DecimalField(decimal_places=2, max_digits=100),
+            field=models.DecimalField(decimal_places=2, max_digits=60),
         ),
         migrations.AlterField(
             model_name='saleitemdiscount',
             name='proposed_discount',
-            field=models.DecimalField(decimal_places=2, max_digits=100),
+            field=models.DecimalField(decimal_places=2, max_digits=60),
         ),
         migrations.CreateModel(
             name='Refund',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=100)),
+                ('amount', models.DecimalField(decimal_places=2, max_digits=60)),
                 ('date', models.DateTimeField(auto_now_add=True)),
                 ('refunded_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('sale', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='arcade.sale')),

@@ -6,6 +6,7 @@ from users.models import CustomUser
 
 class Day(models.Model):
     staff = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='resturant_days')
+    waiter = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='waiter_days')
     start_amount = models.DecimalField(max_digits=15, decimal_places=2)
     end_amount = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
     start = models.BooleanField(default=True)
@@ -14,6 +15,7 @@ class Day(models.Model):
     end_time = models.TimeField(null=True, blank=True)
     no_of_sales = models.PositiveIntegerField(default=0)
     date = models.DateTimeField(auto_now_add=True)
+    approved = models.BooleanField(default=False)
 
     def end_day(self):
         total_sales = self.sale_set.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
@@ -35,10 +37,9 @@ class Category(models.Model):
 
 class Inventory(models.Model):
     staff = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='resturant_inventories')
-    image = models.ImageField(max_length=100)
     name = models.CharField(max_length=100)
+    quantity = models.PositiveIntegerField(default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    description = models.CharField(max_length=255, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='resturant_category')
     date = models.DateTimeField(auto_now_add=True)
 
@@ -51,12 +52,14 @@ class Inventory(models.Model):
 class Sale(models.Model):
     type = models.CharField(max_length=100, choices=[('Take Away', 'Take Away'), ('Dine In', 'Dine In')])
     Table_no = models.CharField(max_length=100)
-    cashier = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="resturant_sale")  # Who handled the sale
+    cashier = models.ForeignKey(CustomUser, null=True, on_delete=models.CASCADE, related_name="resturant_sale")  # Who handled the sale
     day = models.ForeignKey(Day, on_delete=models.CASCADE)
     total = models.DecimalField(max_digits=15, decimal_places=2)  # Total amount for the sale
     completed = models.BooleanField(default=False)
-    paid = models.BooleanField(default=False)
     date = models.DateTimeField(auto_now_add=True)  # When the sale occurred
+    waiter = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="resturant_waiter")
+    approved = models.BooleanField(default=False)
+    paid = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Sale #{self.id} by {self.cashier}"

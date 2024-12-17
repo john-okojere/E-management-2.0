@@ -70,14 +70,27 @@ div.dataTables_wrapper div.dataTables_info {
             <li>
                 <h3>Restaurant</h3>
             </li>
-            <li><a href="{% url 'resturant_cashier' %}"><i data-feather="user" style="width:18px; height:18px ;margin-right:10px"></i>POS</a></li>
-            
-            <li><a href="#" class="menu-option" data-view="orders">Reserve Table</a></li>
-            <li><a href="#" class="menu-option" data-view="reports">Customers </a></li>
-            <li><a href="{% url 'resturant_sales_history' %}"> <i data-feather="shopping-cart" style="width:18px; height:18px ;margin-right:10px"></i>Sales</a></li>
-            {% if user.role == "cashier" %}{% else %}<li><a href="{% url 'resturant_inventory_list' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Inventory</a></li>{% endif %}
-            <li><a href="{% url 'resturant_audit_report' %}"><i data-feather="bar-chart-2"  style="width:18px; height:18px ;margin-right:10px"></i>Reports</a></li>
+            {% if user.role == "Waiter" %}
+            <li><a href="{% url 'resturant_waiter' %}"><i data-feather="user" style="width:18px; height:18px ;margin-right:10px"></i>Waiter</a></li>
+            {% endif %}
+
+            {% if user.role == "Cashier" %}
+            <li><a href="{% url 'resturant_cashier' %}"><i data-feather="user" style="width:18px; height:18px ;margin-right:10px"></i>Cashier</a></li>
             <li><a href="{% url 'resturant_end_of_day_report' %}"><i data-feather="inbox" style="width:18px; height:18px ;margin-right:10px"></i>End of Day</a></li>
+            <li><a href="{% url 'resturant_sales_history' %}"> <i data-feather="shopping-cart" style="width:18px; height:18px ;margin-right:10px"></i>Sales</a></li>
+
+            {% endif %}
+            
+
+            {% if user.role == 'Manager'  or user.level >= 3  %}
+            <li><a href="{% url 'resturant_dashboard' %}"><i data-feather="bar-chart-2"  style="width:18px; height:18px ;margin-right:10px"></i>dashboard</a></li>
+            <li><a href="{% url 'resturant_manage_approvals' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Manage Approvals</a></li>
+            <li><a href="{% url 'resturant_inventory_list' %}"> <i data-feather="box" style="width:18px; height:18px ;margin-right:10px"></i>Inventory</a></li>
+            <li><a href="{% url 'resturant_sales_history' %}"> <i data-feather="shopping-cart" style="width:18px; height:18px ;margin-right:10px"></i>Sales</a></li>
+
+           {% endif %}
+          
+
 
         </ul>
     </div>
@@ -85,7 +98,7 @@ div.dataTables_wrapper div.dataTables_info {
     <!-- Main Content -->
     <div class="main-content"
     style=" 
-      padding:0;
+      padding:rem;
     margin:0;
     "
 

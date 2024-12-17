@@ -1,12 +1,12 @@
 from django.contrib import admin
-from .models import Inventory, Sale, SaleItem, Receipt, SaleDiscount, SaleItemDiscount, Day, Category
+from .models import Inventory, Sale, SaleItem, Receipt, SaleDiscount, SaleItemDiscount, Day, Category, Payment
 
 admin.site.register(Category)
 @admin.register(Inventory)
 class InventoryAdmin(admin.ModelAdmin):
     list_display = ('name', 'price', 'staff', 'date')
     list_filter = ('date', 'staff')
-    search_fields = ('name', 'description', 'staff__username')
+    search_fields = ('name', 'staff__username')
     ordering = ('-date',)
 
 class SaleItemInline(admin.TabularInline):
@@ -56,3 +56,11 @@ class DayAdmin(admin.ModelAdmin):
     list_display = ('staff', 'start_amount', 'end_amount', 'start_time', 'end_time', 'no_of_sales', 'date')
     list_filter = ('staff', 'date')
     search_fields = ('staff__username', 'start_amount', 'end_amount')
+
+
+    @admin.register(Payment)
+    class PaymentAdmin(admin.ModelAdmin):
+        list_display = ('sale', 'cashier', 'amount', 'payment_type', 'paid_by', 'date', 'payment_id')
+        list_filter = ('payment_type', 'date', 'cashier__username')
+        search_fields = ('sale__id', 'cashier__username', 'payment_id')
+        ordering = ('-date',)

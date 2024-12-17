@@ -1,112 +1,301 @@
 {% extends "resturant/base.html" %}
 
 {% block main_content %}
-<!-- DataTables CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- DataTables JS -->
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<!-- Chart.js (if needed) -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<h2 class="section-title">Beauty Store End of Day Report</h2>
 <style>
-    .main-content{
-        background-color: #fff;
-    }
+    /* General Styling */
+body {
+font-family: 'Arial', sans-serif;
+margin: 0;
+padding: 0;
+background-color: #f9f9f9;
+}
 
-    .actions{
-        display: flex;
-        gap: 18px;
-    }
+.main-content {
+background-color: #ffffff;
+padding: 20px;
+margin: 20px auto;
+max-width: 1200px;
+border-radius: 8px;
+box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
 
-    .exportBtn{
-        background-color: rgb(123, 5, 5);
-        color: white;
-        padding: 10px 20px;
-        border-radius: 5px;
-        text-decoration: none;
-        display: inline-block;
-        cursor: pointer;
-        font-size: 16px;
-        margin-right: 10px;
-        transition: backround-color 0.3s ease;
-    }
+/* Section Titles */
+.section-title {
+font-size: 24px;
+margin-bottom: 20px;
+color: #333333;
+border-bottom: 2px solid #f0f0f0;
+padding-bottom: 8px;
+}
 
-    .exportBtn:hover{
-        background-color: white;
-        border: 1px solid rgb(123, 5, 5) !important;
-        color: black;
-    }
+/* Tables */
+.summary-table,
+.dataTables_wrapper {
+width: 100%;
+margin-top: 15px;
+}
 
-    button.exportBtn{
-        border-color: rgb(123, 5, 5);
-    }
+.summary-table {
+border-collapse: collapse;
+width: 100%;
+background-color: #fff;
+}
 
-    a.exportBtn{
-        display: inline-block;
-        border-color: rgb(123, 5, 5);
-    }
+.summary-table th,
+.summary-table td {
+padding: 12px 15px;
+text-align: left;
+border: 1px solid #ddd;
+font-size: 16px;
+}
 
-    .container mt-5, p, th{
-        color: #5B6670;
-    }
+.summary-table th {
+background-color: #f5f5f5;
+color: #555;
+font-weight: bold;
+}
 
-    .container mt-5, h2{
-        position: relative;
-        top: -17px;
-        color: black;
-    }
+.summary-table td {
+color: #333;
+}
+
+.summary-table .highlight {
+font-weight: bold;
+color: #d9534f;
+}
+
+/* DataTables */
+table.display {
+width: 100%;
+margin: 20px 0;
+border-collapse: collapse;
+background-color: #ffffff;
+}
+
+table.display th,
+table.display td {
+padding: 10px;
+text-align: left;
+border: 1px solid #ddd;
+font-size: 14px;
+}
+
+table.display th {
+background-color: #f0f0f0;
+font-weight: bold;
+color: #555;
+}
+
+table.display tr:nth-child(even) {
+background-color: #f9f9f9;
+}
+
+table.display tr:hover {
+background-color: #f1f1f1;
+}
+
+/* Buttons */
+.exportBtn {
+background-color: white;
+border: 2px solid #7b0505;
+color: black;
+padding: 10px 20px;
+border-radius: 5px;
+text-decoration: none;
+cursor: pointer;
+font-size: 16px;
+transition: background-color 0.3s ease, color 0.3s ease;
+display: inline-block;
+margin-top: 15px;
+}
+
+.exportBtn:hover {
+background-color: #7b0505;
+color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+.main-content {
+    padding: 15px;
+    margin: 10px;
+}
+
+.section-title {
+    font-size: 20px;
+}
+
+.summary-table th,
+.summary-table td,
+table.display th,
+table.display td {
+    font-size: 14px;
+    padding: 10px;
+}
+
+.exportBtn {
+    font-size: 14px;
+    padding: 8px 16px;
+}
+}
+
 </style>
-
-<div class="container mt-5">
-    <h2>End of Day Sales Report</h2>
-    {% if day.end == False %}
-        <div id="summary">
-            <p><strong>Total Sales: </strong><span id="totalSales">0</span></p>
-            <p><strong>Total Paid: </strong><span id="totalPaid">0</span></p>
-            <p><strong>Total Completed: </strong><span id="totalCompleted">0</span></p>
-            <p><strong>Total Pending: </strong><span id="totalPending">0</span></p>
-        </div>
-    {% else %}
-    <div id="summary">
-        <p><strong>Total Sales: </strong><span id="totalSales">{{total_sales}}</span></p>
-        <p><strong>Total Paid: </strong><span id="totalPaid">{{total_amount}}</span></p>
-        <p><strong>Total Completed: </strong><span id="totalCompleted">0</span></p>
-        <p><strong>Total Pending: </strong><span id="totalPending">0</span></p>
-    </div>
-    {% endif %}
-<br>
-     <!-- DataTable -->
-    <table id="salesTable" class="display" width="100%">
+<!-- Sales Summary -->
+<div>
+    <h3 class="section-title">Sales Summary</h3>
+    <table class="summary-table">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Cashier</th>
-                <th>Amount</th>
-                <th>End Amount</th>
-                <th>No of Sales</th>
-                <th>Date</th>
+                <th>Description</th>
+                <th>Value</th>
             </tr>
         </thead>
         <tbody>
-            {% for day in sales %}
             <tr>
-                <td>{{ day.id }}</td>
-                <td>{{ day.cashier.username }}</td>
-                <td>{{ day.total }}</td>
-                <td>{{ day.completed }}</td>
-                <td>{{ day.paid }}</td>
-                <td>{{ day.date }}</td>
+                <td>Starting Cash</td>
+                <td>₦{{ day.start_amount }}</td>
+            </tr>
+            <tr>
+                <td>Total Sales</td>
+                <td>₦{{ total_sales }}</td>
+            </tr>
+            <tr>
+                <td>Completed Sales</td>
+                <td>{{ total_completed_sales }}</td>
+            </tr>
+            <tr>
+                <td>Pending Sales</td>
+                <td>{{ total_pending_sales }}</td>
+            </tr>
+            <tr>
+                <td>Total Cash Payments</td>
+                <td>₦{{ total_cash_payments }}</td>
+            </tr>
+            <tr>
+                <td>Total Card Payments</td>
+                <td>₦{{ total_card_payments }}</td>
+            </tr>
+            <tr>
+                <td>Total Cash Received</td>
+                <td>₦{{ total_cash_received }}</td>
+            </tr>
+            <tr>
+                <td>Expected Cash at Hand</td>
+                <td>₦{{ expected_cash_at_hand }}</td>
+            </tr>
+        </tbody>
+    </table>
+    {% if request.user.role == "Cashier" %}
+{% if day.end %}
+    <div class="actions">
+        <button class="exportBtn">Export to CSV</button>
+    </div>
+{% else %}
+    <div class="actions">
+        <a href="{% url 'resturant_end_day' %}">End Day</a>
+    </div>
+{% endif %}
+{% endif %}
+</div>
+
+{% if request.user.role != "Cashier" %}
+  <!-- Profit Summary -->
+<div>
+    <h3 class="section-title">Profit Summary</h3>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Revenue</td>
+                <td>₦{{ total_revenue }}</td>
+            </tr>
+            <tr>
+                <td>Total Cost</td>
+                <td>₦{{ total_cost }}</td>
+            </tr>
+            <tr>
+                <td>Gross Profit</td>
+                <td>₦{{ gross_profit }}</td>
+            </tr>
+            <tr>
+                <td>Profit Margin</td>
+                <td>{{ profit_margin|floatformat:2 }}%</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Inventory Impact -->
+<div class="table-container">
+    <h3 class="section-title">Inventory Impact</h3>
+    <table id="inventoryTable" class="display">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Product</th>
+                <th>Total Quantity Sold</th>
+                <th>Total Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory_impact %}
+            <tr>
+                <td>{{ item.product__category__name }}</td>
+                <td>{{ item.product__name }}</td>
+                <td>{{ item.total_quantity }}</td>
+                <td>₦{{ item.total_revenue }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<!-- Discounts -->
+<div>
+    <h3 class="section-title">Discounts</h3>
+    <table class="summary-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Discounts Proposed</td>
+                <td>₦{{ total_sale_discounts }}</td>
+            </tr>
+            <tr>
+                <td>Total Discounts Approved</td>
+                <td>₦{{ total_approved_discounts }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+</div>
+{% endif %}
+
+
+
+<script>
+$(document).ready(function () {
+    $('#inventoryTable').DataTable({
+        responsive: true,
+        paging: true,
+        searching: true,
+    });
+});
+</script>
 
     <div class="actions">
         
         {% if day.end %}
-            <button class="exportBtn">Export to CSV</button>
         {% else %}
             <a href="{% url 'resturant_end_day' %}" class="exportBtn">End Day</a>          
         {% endif %}

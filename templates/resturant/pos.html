@@ -6,6 +6,11 @@
     #menu-items .item{
         height: fit-content !important;
     }
+    .cart-item{
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+    }
 </style>
 
   <link rel="stylesheet" href="{% static 'assets/css/resturant.css'%} ">
@@ -19,8 +24,24 @@
         <header>
           <h1 style="
             font-size:1.5rem;
-            ">Home</h1>
-          <input type="text" placeholder="Search menu here...">
+            ">Waiter</h1>
+          <input type="text"  id="search-menu" placeholder="Search menu..." oninput="searchMenuItems()">
+        <script>
+            function searchMenuItems() {
+            const searchInput = document.getElementById("search-menu").value.toLowerCase();
+            const menuItemsContainer = document.getElementById("menu-items");
+            const items = menuItemsContainer.querySelectorAll(".item");
+
+            items.forEach((item) => {
+                const itemName = item.querySelector(".styleHeader").textContent.toLowerCase();
+                if (itemName.includes(searchInput)) {
+                    item.style.display = "block";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
+        </script>
         </header>
 
           
@@ -296,14 +317,7 @@
     <div class="order-details" style="padding: 10px;
      height: 100vh;
     ">
-        <h2>Order Cart</h2>
-      
-        <!-- Order Mode -->
-        <div class="order-mode">
-          <button class="mode activeOrder">Dine In</button>
-          <button class="mode">Takeaway</button>
-        </div>
-      
+        <h2>Order Cart: <span id="saleIdText">0000</span> </h2>
         <!-- Order Information -->
         <div class="order-info">
             <!-- <p><strong>Order ID:</strong> <span data-order-id></span></p>
@@ -320,17 +334,28 @@
             <button>Recall</button>
             <button id="clearBtn">Clear</button>
           </div> -->
-     
-        <!-- Cart Summary -->
-       <!-- Cart Summary -->
-       <div class="cart-summary">
+     <!-- Order Mode -->
+     <div id="order-infw">
+        <div class="order-mode">
+            <button class="mode activeOrder">Dine In</button>
+            <button class="mode">Takeaway</button>
+          </div>
+          <div>
+              <input type="text" style="width: 100%;margin-top: 10px;" class="form-control" name="Table_no" placeholder="Enter Table number">
+          </div>
+            <!-- Cart Summary -->
+           <!-- Cart Summary -->
+           <div class="cart-summary">
         <p><strong class="textBold">Total:</strong> <span id="subtotal" class="textlight">₦0</span></p>
-        <p class="flexamount">
-    <p><strong>Amount Paid:</strong> ₦ <input type="number" id="amountPaid" placeholder="Enter Amount"></p>
-        </p>
-        <p><strong class="textBold">Amount Due:</strong> <span id="total" class="textlight"></span></span></p>
-        <button class="continue-btn" onclick="openTransactionModal()">Continue</button>
-    </div>   
+            <p class="flexamount">
+            
+            <form action="{% url 'send_to_cashier' %}" id="send_to_cashier" method="post">
+                {% csrf_token %}
+                <button class="continue-btn" type="submit">Send to Cashier</button>
+            </form>
+           
+        </div>
+     </div>   
     
   </div>
   <div id="discountModal" class="modal hidden">
@@ -395,10 +420,10 @@
               <label>Customer Name</label>
               <input type="text" class="editForm" id="customerName" placeholder="Enter name">
           </div>
-          <!-- <div class="form-group">
+          <div class="form-group">
               <label>Amount Paid</label></br>
               <input type="number" class="editForm" id="amountPaid" placeholder="Enter Amount">
-          </div> -->
+          </div>
           <div class="form-group">
               <label>Table No</label></br>
               <input type="text" id="tableNo"  class="editForm"placeholder="Enter no">
@@ -428,9 +453,12 @@
         </div>
           <div class="payment-types">
               <button type="button" class="payment-btn" onclick="selectPaymentType('Cash')">Cash</button>
-              <button type="button" class="payment-btn" onclick="selectPaymentType('Transfer')">Transfer</button>
+mentType('Transfer')">Transfer</button>
               <button type="button" class="payment-btn" onclick="selectPaymentType('Card')">Card</button>
           </div>
+          <p><strong>Amount Paid:</strong> ₦ <input type="number" id="amountPaid" placeholder="Enter Amount"></p>
+        </p>              <button type="button" class="payment-btn">
+        <p><strong class="textBold">Amount Due:</strong> <span id="total" class="textlight"></span></span></p>
           <div class="summary">
               <p><strong>Total:</strong> <span id="modalTotal">0.00</span></p>
               <p><strong>Payment Type:</strong> <span id="paymentType">None</span></p>
@@ -511,13 +539,13 @@ let saleId = null; // Global variable to track the current sale ID
     const menuData = {
         all: [
             {% for item in items %}
-            { name: "{{item.name}}", price: {{item.price}}, image: "{{item.image.url}}",id: {{item.id}} },
+            { name: "{{item.name}}", price: {{item.price}}, category: "{{item.category}}",id: {{item.id}} },
             {% endfor %}
         ],
         {% for cat in category %}
         {{cat.slug}}: [
             {% for item in items %}{% if item.category == cat %}
-                { name: "{{item.name}}", price: {{item.price}}, image: "{{item.image.url}}",id: {{item.id}}}
+                { name: "{{item.name}}", price: {{item.price}}, category: "{{item.category}}",id: {{item.id}}}
             {% endif %}{% endfor %}
         ],
         {% endfor %}
@@ -536,11 +564,15 @@ let saleId = null; // Global variable to track the current sale ID
                 const itemDiv = document.createElement("div");
                 itemDiv.className = "item";
                 itemDiv.innerHTML = `
-                <div class="itemContainImage" id="id_${item.id}" style="    width: 8rem;
-">  <img src="${item.image}" alt="${item.name}"> </div>   
-                    <p style ="">${item.name}</p>
-                    <p>₦${item.price}</p>
-                    <button class="add-to-cart">Add to Cart</button>
+                
+                <div class="itemContainImage" id="id_${item.id}" style=" width: 8rem;"></div>  
+                     <div class="contain_texta"> 
+                   <div class="styleHeader">${item.name}</div> 
+                 <div>   <p class="textPiceSmall">₦${item.price}</p> </div>
+                 <div>   <button class="add-to-cart">Add to Cart</button> </div>
+
+                    </div> 
+                   
                 `;
                 menuItemsContainer.appendChild(itemDiv);
 
@@ -551,16 +583,17 @@ let saleId = null; // Global variable to track the current sale ID
             });
         }
     };
+    document.getElementById("order-infw").style.display = "none";
 const addItem = (itemName, itemPrice, itemID) => {
     const price = itemPrice; // Example fixed price per item
    
     const itemTotal = quantity * price;
     totalAmount += itemTotal;
-    {% comment %} document.getElementById('total2').innerText = totalAmount.toFixed(2); {% endcomment %}
-
+    
     // If this is the first item, create the sale
     if (!saleId) {
         const cashierId = document.getElementById('cashierId').value; // Hidden input for cashier ID
+        const saleIdText = document.getElementById('saleIdText'); // Hidden input for cashier ID
 
         $.ajax({
             url: '/restaurant/create-sale/',
@@ -571,8 +604,14 @@ const addItem = (itemName, itemPrice, itemID) => {
                 csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
             },
             success: function(response) {
-                saleId = response.sale_id; // Save the sale ID for subsequent items
+                saleId = response.sale_id;
+                if (saleId.toString().length < 4) {
+                    document.getElementById('saleIdText').innerText = saleId.toString().padStart(4, '0')
+                }
+                console.log(document.getElementById('saleIdText').innerText)
                 addSaleItem(itemID, itemName, price, quantity); // Add the first item after creating the sale
+                console.log(saleId)
+                document.getElementById("order-infw").style.display = "block";
             },
             error: function() {
                 alert('Failed to create sale.');
@@ -649,26 +688,27 @@ function addSaleItem(itemID, itemName, price, quantity) {
             const cartItem = document.createElement("div");
             cartItem.className = "cart-item";
             cartItem.innerHTML = `
-            <div class="containCartItems">
-                <div class="itemMYImage"> 
-                     <img src="${item.image}" class="imgcart">
-                     <div class="item-controls">
-                
-                    <button class="btnQtyIncrease btn-res quantity-btn decrease" data-index="${index}">-</button>
-                    <span class="quantity">${item.quantity}</span>
-                    <button class="btnQtyIncrease quantity-btn increase" data-index="${index}">+</button>
-                  </div>
+                <div class="containCartItems">
+                <div>
+                     <button class="delete-btn" >&times;</button></div>
+    
                 </div>
-                </div>
-
-                <div class = "itemDescMain">
-                    <h4>${item.name}</h4>
-                   
-                    
+                    <div class="itemMYImage"> 
+                        <h3>${item.category.charAt(0).toUpperCase() + item.category.slice(1)}</h3>
+                        
+                         <h4>${item.name}</h4>
+                        
+                    </div>
                 </div>
                 <div class="pricingCart">
-                <div>  <p>Price:₦ ${item.price}</p></div>
-                <button class="delete-btn">X</button></div>
+                    <div>
+                        <div class="item-controls">
+                            <button class="btnQtyIncrease btn-res quantity-btn decrease" data-index="${index}">-</button>
+                            <span class="quantity">${item.quantity}</span>
+                            <button class="btnQtyIncrease quantity-btn increase" data-index="${index}">+</button>
+                        </div>
+                        <div><p>Price:₦ ${item.price}</p></div>
+                    </div
                 </div>
             </div>
             `;
@@ -793,7 +833,28 @@ function addSaleItem(itemID, itemName, price, quantity) {
         });
     });
 
-
+    const tableNumberInput = document.querySelector('input[name="Table_no"]');
+    tableNumberInput.addEventListener('input', () => {
+        const tableNumber = tableNumberInput.value;
+        console.log(tableNumberInput.value)
+        if (saleId) {
+            $.ajax({
+                url: '/restaurant/update-table-number/',
+                method: 'POST',
+                data: {
+                    sale_id: saleId,
+                    table_number: tableNumber,
+                    csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                success: function(response) {
+                    console.log(`Table number updated to: ${tableNumber}`);
+                },
+                error: function() {
+                    alert('Failed to update table number.');
+                }
+            });
+        }
+    });
 
     orderMode.forEach((mode) => {
         mode.addEventListener("click", () => {
@@ -806,10 +867,11 @@ function addSaleItem(itemID, itemName, price, quantity) {
                     method: 'POST',
                     data: {
                         sale_id: saleId,
-                        sale_type: 'Dine In' ,
+                        sale_type: 'Dine In',
                         csrfmiddlewaretoken: document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
                     success: function(response) {
+                        tableNumberInput.style.display = "block"
                         console.log(`Sale type set to: Dine In`);
                     },
                     error: function() {
@@ -832,6 +894,7 @@ function addSaleItem(itemID, itemName, price, quantity) {
                     },
                     success: function(response) {
                         console.log(`Sale type set to: Take Away`);
+                        tableNumberInput.style.display = "none"
                     },
                     error: function() {
                         alert('Failed to set sale type.');
@@ -858,8 +921,8 @@ function addSaleItem(itemID, itemName, price, quantity) {
 
 
 
-    // Add event listener to the Amount Paid input field
-amountPaidInput.addEventListener("input", updateCart);
+//     // Add event listener to the Amount Paid input field
+// amountPaidInput.addEventListener("input", updateCart);
     
 
     // Initialize the page with "All" category
@@ -1115,6 +1178,31 @@ function pay(method) {
     }
 }
 
+document.getElementById('send_to_cashier').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent the default form submission
+    const form = event.target;
+    const formData = new FormData(form); // Get form data
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    formData.append('csrfmiddlewaretoken', csrfToken);
+    formData.append('sale_id', saleId);
+
+    $.ajax({
+        url: form.action, // Form's action attribute
+        method: form.method, // Form's method attribute
+        data: formData, // Use FormData object
+        processData: false, // Required for FormData
+        contentType: false, // Required for FormData
+        success: function(response) {
+            alert('Sale completed successfully.');
+            window.location.href = '/restaurant/waiter/'; // Redirect to the waiter page
+        },
+        error: function(xhr, status, error) {
+            alert('Failed to complete sale.');
+        }
+    });
+});
+
+
 // Function to print a receipt
 function printReceipt(paidAmount, change, method) {
     const UpdateamountPaidInput = document.getElementById("amountPaid").value; // Input field for Amount Paid
@@ -1125,26 +1213,6 @@ function printReceipt(paidAmount, change, method) {
     const UpdatetotalElement = document.getElementById("total").innerHTML; // Amount Due    
 // Populate modal with current cart total
  const myamountPaid = parseFloat(UpdateamountPaidInput.value) || 0;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  const modalAmountPaid1 = document.getElementById("ReciptAmoutPaid").textContent
     const modalAmountDue1 = document.getElementById("ReciptAmountDue").textContent ;
 

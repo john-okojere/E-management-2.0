@@ -64,11 +64,16 @@ class RoleBasedRedirectMiddleware:
                 f'/{user_section.lower()}/make-payment/',
                 f'/{user_section.lower()}/end_day/',
                 f'/{user_section.lower()}/complete-sale/',
+                f'/{user_section.lower()}/process-payment/',
+                f'/{user_section.lower()}/approve-order/',
                 f'/{user_section.lower()}/api/inventory/',
                 f'/{user_section.lower()}/quantity-increase/<int:sale_item_id>/',
                 f'/{user_section.lower()}/quantity-increase/<int:sale_item_id>/',
                 f'/{user_section.lower()}/update-sale-item/<int:sale_item_id>/',
                 f'/{user_section.lower()}/remove-sale-item/<int:sale_item_id>/',
+                f'/{user_section.lower()}/get-order-details/<int:sale_id>/',
+                f'/{user_section.lower()}/get-receipt-details/<int:sale_id>/',
+                
 
             ])
         elif user_role == 'Manager' and user_section and user_section.lower() in SECTIONS:
@@ -87,12 +92,25 @@ class RoleBasedRedirectMiddleware:
                 f'/{user_section.lower()}/export/doc/',
                 f'/{user_section.lower()}/approve-day/<int:day_id>/',
             ])
+        elif user_role == 'Waiter' and user_section and user_section.lower() in SECTIONS:
+            allowed_paths.extend([
+                f'/{user_section.lower()}/waiter/',
+                f'/{user_section.lower()}/send-cashier/',
+                f'/{user_section.lower()}/create-sale/',
+                f'/{user_section.lower()}/increase-sale-item/',
+                f'/{user_section.lower()}/decrease-sale-item/',
+                f'/{user_section.lower()}/add-sale-item/',
+                f'/{user_section.lower()}/delete-sale-item/',
+                f'/{user_section.lower()}/complete-sale/',
+                f'/{user_section.lower()}/set-sale-type/',
+                f'/{user_section.lower()}/update-table-number/',
+            ])
 
         # Include dynamic URL patterns
         allowed_paths.append(f'/{user_section.lower()}/sale/receipt/<int:sale_id>/')
 
         path = request.path
-
+        print(user_role,user_section,request.path,'Denied access')
         # Store last valid path in session if it's allowed
         if path in allowed_paths or any(path.startswith(ap.rstrip('<int:sale_id>/')) for ap in allowed_paths):
             request.session[f'last_valid_url_{user_role.lower()}'] = path
@@ -101,15 +119,13 @@ class RoleBasedRedirectMiddleware:
         elif path in allowed_paths or any(path.startswith(ap.rstrip('<int:sale_item_id>/')) for ap in allowed_paths):
             request.session[f'last_valid_url_{user_role.lower()}'] = path
         else:
-            last_valid_url = request.session.get(f'last_valid_url_{user_role.lower()}')
-            if last_valid_url:
-                return redirect(last_valid_url)
-
             # Default redirects if no valid URL in session
             if user_role == 'Cashier' and user_section:
                 return redirect(f'/{user_section.lower()}/cashier/')
             elif user_role == 'Manager' and user_section:
                 return redirect(f'/{user_section.lower()}/dashboard/')
+            elif user_role == 'Manager' and user_section:
+                return redirect(f'/{user_section.lower()}/waiter/')
 
         return self.get_response(request)
     

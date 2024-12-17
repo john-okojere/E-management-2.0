@@ -2,7 +2,8 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import Inventory, Category
+from django.utils.text import slugify
+from .models import Inventory, Category, Receipt
 from .forms import InventoryForm, StartDayForm, EndDayForm, CategoryForm
 from users.models import CustomUser
 from .models import Day
@@ -31,13 +32,13 @@ def start_day(request):
 
 
 @login_required
-def cashier(request):
+def waiter(request):
     # Check if there is any day that has not ended
-    unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
+    unfinished_day = Day.objects.filter(waiter=request.user, end=False).first()
     print(unfinished_day,'jkn')
 
     if not unfinished_day:
-        return redirect('resturant_start_day')  # Redirect to the start day view if no day has started
+        return JsonResponse({'status':''})  # Redirect to the start day view if no day has started
 
     items = Inventory.objects.all()
     category = Category.objects.all()
@@ -46,6 +47,77 @@ def cashier(request):
         'category': category,
     }
     return render(request, 'resturant/pos.html', context)
+
+@login_required
+def cashier(request):
+    # Check if there is any day that has not ended
+    unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
+    if not unfinished_day:
+        return redirect('resturant_start_day')  # Redirect to the start day view if no day has started
+    pending_orders = Sale.objects.filter(day = unfinished_day, completed=True, paid=False).order_by('-date')
+    context = {
+     'orders': pending_orders
+    }
+    return render(request, 'resturant/cashier.html', context)
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.http import JsonResponse
+from .models import Sale, Payment
+from decimal import Decimal
+
+from django.views.decorators.http import require_POST
+# View to process payment
+@require_POST
+def process_payment(request):
+    try:
+        sale_id = request.POST.get('sale_id')
+        amount = request.POST.get('amount')
+        payment_type = request.POST.get('payment_type')
+        paid_by = request.POST.get('paid_by')
+
+        # Ensure all required fields are present
+        if not (sale_id and amount and payment_type and paid_by):
+            return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
+
+        sale = get_object_or_404(Sale, id=sale_id)
+
+        # Create the Payment record
+        Payment.objects.create(
+            sale=sale,
+            cashier=request.user,
+            amount=amount,
+            payment_type=payment_type,
+            paid_by=paid_by
+        )
+
+        # Mark the sale as paid
+        sale.paid = True
+        sale.save()
+
+        return JsonResponse({'success': True, 'message': 'Payment processed successfully!'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@require_POST
+def approve_order(request):
+    try:
+        sale_id = request.POST.get('Asale_id')
+
+        # Ensure all required fields are present
+        if not (sale_id):
+            return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
+
+        sale = get_object_or_404(Sale, id=sale_id)
+        sale.cashier = request.user
+        sale.approved = True
+        # Mark the sale as paid
+        sale.save()
+
+        return JsonResponse({'success': True, 'message': 'Payment processed successfully!'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 @login_required
 def add_inventory(request):
@@ -70,18 +142,19 @@ def add_inventory(request):
     else:
         form = InventoryForm()
 
-    return render(request, 'resturant/inventory/add.html', {'form': form})
+    return render(request, 'resturant/inventory/add.html', {'form': form, 'name':'Menu'})
 
 @login_required
 def create_category(request):
     if request.method == 'POST':
         form = CategoryForm(request.POST)
         if form.is_valid():
+            form.instance.slug = '_'.join(form.cleaned_data['name'].split())
             form.save()
-            return redirect('resturant_inventory_list')
+            return redirect('resturant_inventory_categorry')
     else:
         form = CategoryForm()
-    return render(request, 'resturant/inventory/add.html', {'form': form})
+    return render(request, 'resturant/inventory/add.html', {'form': form, 'name':'Category'})
 
 def inventory_list(request):
     items = Inventory.objects.all().order_by('-date')
@@ -125,12 +198,15 @@ from django.http import JsonResponse
 from .models import Sale, SaleItem, Inventory
 
 def create_sale(request):
-    unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
+    if request.user.role == "Cashier":
+        unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
+    else:
+        unfinished_day = Day.objects.filter(end=False).first()
     if request.method == 'POST':
         cashier_id = request.user.id
         total_amount = request.POST.get('total_amount')
-        cashier = CustomUser.objects.get(id=cashier_id)
-        sale = Sale.objects.create(cashier=cashier, total=total_amount, day=unfinished_day)
+        waiter = CustomUser.objects.get(id=cashier_id)
+        sale = Sale.objects.create(waiter=waiter, total=total_amount, day=unfinished_day)
         return JsonResponse({'status': 'success', 'sale_id': sale.id})
 
 from django.db.models import F
@@ -260,15 +336,32 @@ def set_sale_type(request):
     if request.method == 'POST':
         sale_id = request.POST.get('sale_id')
         sale_type = request.POST.get('sale_type')  # 'dine' or 'takeaway'
+        print(sale_type)
 
         try:
             sale = Sale.objects.get(id=sale_id)
-            sale.sale_type = sale_type
+            sale.type = sale_type
             sale.save()
             return JsonResponse({'status': 'success', 'message': 'Sale type updated successfully!'})
         except Sale.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Sale not found.'})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+def set_sale_table(request):
+    if request.method == 'POST':
+        sale_id = request.POST.get('sale_id')
+        sale_table = request.POST.get('table_number')  # 'dine' or 'takeaway'
+
+        try:
+            sale = Sale.objects.get(id=sale_id)
+            sale.Table_no = sale_table
+            sale.save()
+            return JsonResponse({'status': 'success', 'message': 'Sale type updated successfully!'})
+        except Sale.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Sale not found.'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+
+
 
 def complete_sale(request):
     if request.method == 'POST':
@@ -280,7 +373,7 @@ def complete_sale(request):
             sale.completed = True
             sale.save()
             
-            return JsonResponse({'status': 'success', 'message': 'Sale marked as completed.'})
+            return redirect('/restaurant/waiter/')
         except Sale.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Sale not found.'})
 
@@ -330,57 +423,32 @@ from django.db.models import Sum
 from django.db.models.functions import TruncDay
 
 def sales_history(request):
-    # Filter completed sales
-    sales = Sale.objects.filter(completed=True).order_by('-date')
-    if request.user.role == "cashier":
-        sales = Sale.objects.filter(completed=True, cashier= request.user).order_by('-date')
-    sales_data = []
+    unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
+    if not unfinished_day and request.user.role == "Cashier":
+        return redirect('beauty_start_day')  # Redirect to the start day view if no day has started
 
-    # Sales data for table
-    for sale in sales:
-        sales_data.append({
-            'id': sale.id,
-            'cashier': sale.cashier.username,
-            'total': float(sale.total),
-            'date': sale.date.strftime('%Y-%m-%d %H:%M:%S'),
-        })
-
-    # Summarize sales by date for the graph
-    graph_data = (
-        Sale.objects.filter(completed=True)
-        .annotate(day=TruncDay('date'))
-        .values('day')
-        .annotate(total=Sum('total'))
-        .order_by('day')
-    )
-
-    # Convert graph data into labels and values
-    graph_labels = [entry['day'].strftime('%Y-%m-%d') for entry in graph_data]
-    graph_values = [float(entry['total']) for entry in graph_data]
-
-    if request.is_ajax():
-        return JsonResponse({'sales': sales_data, 'graph_labels': graph_labels, 'graph_values': graph_values})
-    return render(request, 'resturant/sales_history.html', {
-        'sales': sales_data,
-        'graph_labels': graph_labels,
-        'graph_values': graph_values,
-    })
-
-from django.db.models import Sum
-from django.db.models.functions import TruncDay
-from django.db.models import Sum
-
-def sales_history(request):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':  # Check for AJAX request
         # Handle AJAX request for sales data
-        sales = Sale.objects.all().values('id', 'cashier__username', 'completed', 'total', 'paid' ,'date') # Query all sales data
+        sales = Sale.objects.all() # Query all sales data
+        if request.user.role == "Cashier":
+            sales = Sale.objects.filter(completed=True,day = unfinished_day, cashier= request.user).values('id', 'cashier__username','waiter__username', 'completed', 'total', 'paid' ,'date')
+            sale = Sale.objects.filter(completed=True, cashier= request.user).order_by('-date')[:10]
+        elif request.user.level >= 3 or request.user.role == "Manager":
+            sales = Sale.objects.filter(completed=True).values('id', 'cashier__username','waiter__username','completed', 'total', 'paid' ,'date')
+            sale = Sale.objects.filter(completed=True).order_by('-date')[:10]
         sales_list = list(sales)  # Convert queryset to list of dictionaries
         return JsonResponse({'sales': sales_list})
 
     # For non-AJAX requests, render the template
-    return render(request, 'resturant/sales_history.html', { 
-        'sales_data': Sale.objects.filter(completed=True).order_by('-date')[:10]  # Example: Latest 10 sales
-    })
+    if request.user.role == "Cashier":
+             return render(request, 'resturant/sales_history.html', { 
+                'sales_data': Sale.objects.filter(completed=True,day = unfinished_day ,cashier= request.user).order_by('-date')[:10]  # Example: Latest 10 sales
+            })
+    elif request.user.level >= 3 or request.user.role == "Manager":
+        return render(request, 'resturant/sales_history.html', { 
+            'sales_data': Sale.objects.filter(completed=True).order_by('-date')[:10]  # Example: Latest 10 sales
+        })
+
 
 from django.http import JsonResponse
 from django.db.models import Sum
@@ -430,20 +498,61 @@ from .models import Sale  # Assuming you have a Sale model for storing sales dat
 from datetime import datetime
 
 def end_of_day_report(request):
-    # Get today's date
-    today = datetime.today().date()
-    day = Day.objects.filter(staff=request.user).last()
+    day = Day.objects.filter(staff=request.user, end=False).first()
 
-    # Fetch the sales for today from the database
-    sales = Sale.objects.filter(day=day)  # Assuming your Sale model has a 'date' field
+    if not day:
+        return redirect('resturant_start_day')  # Redirect to the start day view if no day has started
 
-    # Aggregate the sales data
+    # Sales Summary
+    sales = Sale.objects.filter(day=day)
+    total_sales = sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+    total_completed_sales = sales.filter(completed=True).count()
+    total_pending_sales = sales.filter(completed=False).count()
+
+    # Payment Breakdown
+    payments = Payment.objects.filter(sale__day=day)
+    total_cash_payments = payments.filter(payment_type='cash').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_card_payments = payments.filter(payment_type='card').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_transfer_payments = payments.filter(payment_type='transfer').aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_cash_received = total_cash_payments
+    total_change_given = Decimal('0.00')  # Replace with logic if tracked
+    expected_cash_at_hand = day.start_amount + total_cash_received - total_change_given
+
+    # Profit Summary
+    items = SaleItem.objects.filter(sale__day=day)
+    total_revenue = items.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+
+    # Inventory Impact
+    inventory_impact = (
+        items.values('product__name', 'product__category__name')
+        .annotate(
+            total_quantity=Sum('quantity'),
+            total_revenue=Sum('total'),
+        )
+        .order_by('product__category__name')
+    )
+
+    # Discounts
+    total_sale_discounts = SaleDiscount.objects.filter(sale__day=day).aggregate(total=Sum('proposed_discount'))['total'] or Decimal('0.00')
+    total_approved_discounts = SaleDiscount.objects.filter(sale__day=day, approved=True).aggregate(total=Sum('proposed_discount'))['total'] or Decimal('0.00')
+
     context = {
-        'total_sales': sales.count(),
-        'total_amount': sales.aggregate(total=Sum('total'))['total'] or 0,
-        'sales': sales,
         'day': day,
+        'total_sales': total_sales,
+        'total_completed_sales': total_completed_sales,
+        'total_pending_sales': total_pending_sales,
+        'total_cash_payments': total_cash_payments,
+        'total_card_payments': total_card_payments,
+        'total_transfer_payments': total_transfer_payments,
+        'total_cash_received': total_cash_received,
+        'total_change_given': total_change_given,
+        'expected_cash_at_hand': expected_cash_at_hand,
+        'total_revenue': total_revenue,
+        'inventory_impact': inventory_impact,
+        'total_sale_discounts': total_sale_discounts,
+        'total_approved_discounts': total_approved_discounts,
     }
+
 
     return render(request, 'resturant/end-of-day.html', context)
 
@@ -604,3 +713,132 @@ def audit_report(request):
         "sales_chart_data": sales_chart_data,
     }
     return render(request, "resturant/audit_report.html", context)
+
+
+def fetch_orders(request):
+    orders = Sale.objects.values('id', 'waiter', 'resturant_items', 'total', 'completed','Table_no', 'type')
+    return JsonResponse({'orders': list(orders)})
+
+
+def get_order_details(request, sale_id):
+    if request.method == 'GET':
+        # Fetch the sale and related items
+        sale = get_object_or_404(Sale, id=sale_id)
+        sale_items = SaleItem.objects.filter(sale=sale)
+
+        # Build the order details dictionary
+        order_details = {
+            'id': sale.id,
+            'tableNumber': sale.Table_no,
+            'waiter': sale.waiter.username,
+            'items': [
+                {
+                    'name': item.product.name,
+                    'quantity': item.quantity,
+                    'notes': '',  # Add notes here if available in your model
+                }
+                for item in sale_items
+            ]
+        }
+
+        return JsonResponse(order_details, safe=False)
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+def dashboard(request):
+    # Metrics
+    total_sales = Sale.objects.filter(completed=True).aggregate(Sum('total'))['total__sum'] or 0
+    total_items_sold = SaleItem.objects.aggregate(Sum('quantity'))['quantity__sum'] or 0
+    total_inventory_value = Inventory.objects.aggregate(Sum('price'))['price__sum'] or 0
+    # total_refunds = Refund.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+
+    # Top Products
+    top_products = (
+        SaleItem.objects.values('product__name')
+        .annotate(quantity_sold=Sum('quantity'))
+        .order_by('-quantity_sold')[:5]
+    )
+
+    # Sales Chart Data
+    sales_chart_data = {
+        "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],  # Example
+        "values": [500, 700, 900, 600, 1200, 1500, 800],  # Replace with real data
+    }
+
+    # Inventory Chart Data
+    inventory_chart_data = {
+        "labels": [inv.name for inv in Inventory.objects.all()[:10]],
+        "values": [100, 200, 150, 400, 250, 300, 100, 150, 200, 50],  # Replace with real data
+    }
+
+    context = {
+        "total_sales": total_sales,
+        "total_items_sold": total_items_sold,
+        "total_inventory_value": total_inventory_value,
+        # "total_refunds": total_refunds,
+        "top_products": top_products,
+        "sales_chart_data": sales_chart_data,
+        "inventory_chart_data": inventory_chart_data,
+    }
+
+    return render(request, 'resturant/dashboard.html', context)
+
+@login_required
+def manage_approvals(request):
+    pending_days = Day.objects.filter(approved=False, end=True)
+    pending_discounts = SaleDiscount.objects.filter(approved=False)
+    context = {
+        "pending_days": pending_days,
+        "pending_discounts": pending_discounts,
+    }
+    return render(request, "resturant/approvals/manage_approvals.html", context)
+
+@login_required
+def approve_day(request, day_id):
+    if request.method == "POST":
+        day = get_object_or_404(Day, id=day_id, approved=False)
+        day.approved = True
+        day.save()
+        return JsonResponse({"message": "Day approved successfully!"})
+    return JsonResponse({"error": "Invalid request method."}, status=400)
+
+@login_required
+def approve_discount(request, discount_id):
+    if request.method == "POST":
+        discount = get_object_or_404(SaleDiscount, id=discount_id, approved=False)
+        discount.approved = True
+        discount.save()
+        return JsonResponse({"message": "Discount approved successfully!"})
+    return JsonResponse({"error": "Invalid request method."}, status=400)
+
+
+def generate_receipt_number():
+    return str(uuid.uuid4())[:12]  
+
+def get_receipt_details(request, sale_id):
+    if request.method == 'GET':
+        # Fetch the sale and related receipt
+        sale = get_object_or_404(Sale, id=sale_id)
+        receipt, created = Receipt.objects.get_or_create(sale=sale, defaults={
+            'receipt_number': generate_receipt_number(),  # Replace this with your receipt number generation logic
+        })
+        payment = Payment.objects.filter(sale=sale).first()
+
+        # Build the receipt details dictionary
+        receipt_details = {
+            'receipt_number': receipt.receipt_number,
+            'sale_id': sale.id,
+            'table_number': sale.Table_no,
+            'cashier_name': sale.cashier.username,
+            'total_amount': sale.total,
+            'payment_type': payment.payment_type if payment else 'Unknown',
+            'paid_by': payment.paid_by if payment else 'Unknown',
+            'items': [
+                {
+                    'name': item.product.name,
+                    'quantity': item.quantity,
+                    'price': item.price,
+                }
+                for item in SaleItem.objects.filter(sale=sale)
+            ]
+        }
+        return JsonResponse(receipt_details, safe=False)
+    return JsonResponse({'error': 'Invalid request'}, status=400)

@@ -130,7 +130,7 @@ class Payment(models.Model):
 
 class Refund(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="fashion_refunds")
-    amount = models.DecimalField(max_digits=100, decimal_places=2)
+    amount = models.DecimalField(max_digits=60, decimal_places=2)
     refunded_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='fashion_refunded_by')
     date = models.DateTimeField(auto_now_add=True)
 
