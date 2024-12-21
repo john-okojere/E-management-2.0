@@ -2,6 +2,9 @@
 {% load static %}
 {% block main_content %}
 <script src="{% static 'assets/js/jquery-3.7.1.min.js' %}"></script>
+<link rel="stylesheet" href="{% static 'assets/css/restaurant.css' %}">
+
+l
 <style>
     #menu-items .item{
         height: fit-content !important;
@@ -11,6 +14,60 @@
         justify-content: space-between;
         position: relative;
     }
+
+    .imgContain{
+    border: ;
+    /* box-shadow: 1px 1px 10px rgb(210, 209, 209); */
+    width: 100px;
+    height: 100px;
+    background-color: white;
+    /* padding-bottom: 0.8rem; */
+    border-top-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    /* background-image: url('g1.png'); */
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center center;
+
+
+}
+.mainContainImg{
+    /* border: 1px solid rgb(82, 82, 82); */
+    background-image: url('../img/ET.png');
+
+
+    border-radius: 5px;
+    display: flex;
+    width: 130px;
+    justify-content: center;
+}
+.itemMYImage h3{
+    font-size: 20px !important;
+}
+.itemMYImage h4{
+    font-size: 15px !important;
+}
+
+.contain_texta{
+    display: flex;
+    flex-direction: column;
+    /* gap: 1.4rem; */
+    /* align-items: center; */
+    /* padding-top: 0.8rem; */
+    margin-top: 1.;
+    height: 11rem;
+    /* border: 1px solid red; */
+}
+
+.item p {
+    margin-top: 13px !important;
+    margin-left: 0 !important;
+}
+
+
+
+
+
 </style>
 
   <link rel="stylesheet" href="{% static 'assets/css/resturant.css'%} ">
@@ -21,52 +78,64 @@
     <div class="main-content2" style="padding-top: 0;padding-left: 0;">
       <!-- Home Content -->
       <div id="home" class="view active">
-        <header>
-          <h1 style="
+          <!-- <h1 style=" margin-top: 0;
             font-size:1.5rem;
-            ">Waiter</h1>
-          <input type="text"  id="search-menu" placeholder="Search menu..." oninput="searchMenuItems()">
-        <script>
-            function searchMenuItems() {
-            const searchInput = document.getElementById("search-menu").value.toLowerCase();
-            const menuItemsContainer = document.getElementById("menu-items");
-            const items = menuItemsContainer.querySelectorAll(".item");
+            ">Waiter</h1> -->
 
-            items.forEach((item) => {
-                const itemName = item.querySelector(".styleHeader").textContent.toLowerCase();
-                if (itemName.includes(searchInput)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
-            });
-        }
-        </script>
-        </header>
+            <div style="margin-top: -2rem; margin-bottom: 10px;">
+                Dashboard / food
+            </div>
+      
+      <div class="flex-food-menu-update" style="display:  flex; height: 4rem; border: 1px solid #E4E4E4; gap: 3rem;">
+        <div style="display: flex; align-items: center;">
+            
+            <input type="text"  id="search-menu" placeholder="Search menu..." oninput="searchMenuItems()" style="height: 4rem; padding-left:6px ; border: 1px solid #E4E4E4; background-color: #f4f4f4; border-left: none; ">
+            <script>
+                function searchMenuItems() {
+                const searchInput = document.getElementById("search-menu").value.toLowerCase();
+                const menuItemsContainer = document.getElementById("menu-items");
+                const items = menuItemsContainer.querySelectorAll(".item");
 
-          
-
-        <div class="categories
-        "
-        style="
-        z-index:100000;
-        width:100%;
-        overflow-X:scroll;
-        "
-        >
-          <button class="category CategoryActive" data-category="all">All</button>
-         {% for cat in category %}
-             <button class="category" data-category="{{cat.slug}}">{{cat.name}}</button>
-         {% endfor %}
+                items.forEach((item) => {
+                    const itemName = item.querySelector(".styleHeader").textContent.toLowerCase();
+                    if (itemName.includes(searchInput)) {
+                        item.style.display = "block";
+                    } else {
+                        item.style.display = "none";
+                    }
+                });
+            }
+            </script>
 
 
         </div>
 
-        <div id="menu-items"
-        style="
+        
 
-        "
-        >
+
+
+
+
+
+
+
+
+            
+            <div class="categories" style="z-index:100000;width:100%;overflow-X:scroll; margin: 0; align-items: center;">
+            <button class="category CategoryActive" data-category="all" style="height: 2.5rem;" >All</button>
+            {% for cat in category %}
+                <button class="category" data-category="{{cat.slug}}">{{cat.name}}</button>
+            {% endfor %}
+
+
+        </div>
+
+      </div>
+    
+          
+
+        <div id="menu-items"
+        style="margin-top: 1.5rem;">
           <!-- Menu Items dynamically rendered here -->
         </div>
         <div class="transaction-container hidden">
@@ -315,7 +384,7 @@
     </div>
 
     <div class="order-details" style="padding: 10px;
-     height: 100vh;
+     height: 78vh;
     ">
         <h2>Order Cart: <span id="saleIdText">0000</span> </h2>
         <!-- Order Information -->
@@ -566,12 +635,20 @@ let saleId = null; // Global variable to track the current sale ID
                 itemDiv.innerHTML = `
                 
                 <div class="itemContainImage" id="id_${item.id}" style=" width: 8rem;"></div>  
-                     <div class="contain_texta"> 
-                   <div class="styleHeader">${item.name}</div> 
-                 <div>   <p class="textPiceSmall">₦${item.price}</p> </div>
-                 <div>   <button class="add-to-cart">Add to Cart</button> </div>
+                <div class="contain_texta">   
+                      <div class="containimage">
+                    <div class="mainContainImg">
+                        <div class="imgContain" style="background-image: url('{% static "assets/img/g2.png" %}')" >
 
-                    </div> 
+                        </div>
+
+                    </div>
+                </div> 
+                    <div class="styleHeader">${item.name}</div> 
+                    <div>   <p class="textPiceSmall">₦${item.price}</p> </div>
+                    <div>   <button class="add-to-cart" style="margin-top:0.8rem;">Add to Cart</button> </div>
+
+                </div> 
                    
                 `;
                 menuItemsContainer.appendChild(itemDiv);
@@ -696,18 +773,18 @@ function addSaleItem(itemID, itemName, price, quantity) {
                     <div class="itemMYImage"> 
                         <h3>${item.category.charAt(0).toUpperCase() + item.category.slice(1)}</h3>
                         
-                         <h4>${item.name}</h4>
+                         <h4  style="width:7.5rem">${item.name}</h4>
                         
                     </div>
                 </div>
-                <div class="pricingCart">
+                <div class="pricingCart " style="margin-top:1rem;">
                     <div>
-                        <div class="item-controls">
+                        <div class="item-controls" style="margin-top:1rem; margin-bottom:8px;">
                             <button class="btnQtyIncrease btn-res quantity-btn decrease" data-index="${index}">-</button>
                             <span class="quantity">${item.quantity}</span>
                             <button class="btnQtyIncrease quantity-btn increase" data-index="${index}">+</button>
                         </div>
-                        <div><p>Price:₦ ${item.price}</p></div>
+                        <div><h4 style="margin-top:0px; font-size:15px">Price:₦ ${item.price}</h4></div>
                     </div
                 </div>
             </div>

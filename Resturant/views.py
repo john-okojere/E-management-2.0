@@ -199,14 +199,14 @@ from .models import Sale, SaleItem, Inventory
 
 def create_sale(request):
     if request.user.role == "Cashier":
-        unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
+        unfinished_day = Day.objects.filter(staff=request.user, end=False).last()
     else:
-        unfinished_day = Day.objects.filter(end=False).first()
+        unfinished_day = Day.objects.filter(end=False).last()
     if request.method == 'POST':
         cashier_id = request.user.id
         total_amount = request.POST.get('total_amount')
         waiter = CustomUser.objects.get(id=cashier_id)
-        sale = Sale.objects.create(waiter=waiter, total=total_amount, day=unfinished_day)
+        sale = Sale.objects.create(waiter=waiter, cashier=unfinished_day.staff, total=total_amount, day=unfinished_day)
         return JsonResponse({'status': 'success', 'sale_id': sale.id})
 
 from django.db.models import F
@@ -420,7 +420,7 @@ def apply_sale_item_discount(request):
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
 from django.db.models import Sum
-from django.db.models.functions import TruncDay
+from django.db.models.functions import TruncDay, TruncMonth
 
 def sales_history(request):
     unfinished_day = Day.objects.filter(staff=request.user, end=False).first()
@@ -743,43 +743,88 @@ def get_order_details(request, sale_id):
 
         return JsonResponse(order_details, safe=False)
     return JsonResponse({'error': 'Invalid request'}, status=400)
-def dashboard(request):
-    # Metrics
-    total_sales = Sale.objects.filter(completed=True).aggregate(Sum('total'))['total__sum'] or 0
-    total_items_sold = SaleItem.objects.aggregate(Sum('quantity'))['quantity__sum'] or 0
-    total_inventory_value = Inventory.objects.aggregate(Sum('price'))['price__sum'] or 0
-    # total_refunds = Refund.objects.aggregate(Sum('amount'))['amount__sum'] or 0
 
-    # Top Products
-    top_products = (
-        SaleItem.objects.values('product__name')
-        .annotate(quantity_sold=Sum('quantity'))
-        .order_by('-quantity_sold')[:5]
+from django.shortcuts import render
+from django.db.models import Sum, Count
+from .models import Sale, SaleItem, Inventory, Payment, Day, CustomUser, Category
+
+def dashboard(request):
+    # Prefetch and aggregate required data
+    sales_data = Sale.objects.filter(completed=True, paid=True)
+    sale_items_data = SaleItem.objects.filter(sale__paid=True)
+    inventory_data = Inventory.objects.all()
+    payment_data = Payment.objects.filter(sale__paid=True)
+    days_count = Day.objects.count()
+    categories_count = Category.objects.count()
+    staff_count = CustomUser.objects.filter(section="restaurant").count()
+
+    # Metrics
+    total_sales = sales_data.aggregate(total=Sum('total'))['total'] or 0
+    total_items_sold = sale_items_data.aggregate(total=Sum('quantity'))['total'] or 0
+    total_inventory_value = inventory_data.aggregate(total=Sum('price'))['total'] or 0
+    total_payments = payment_data.aggregate(total=Sum('amount'))['total'] or 0
+
+    # Staff-related Metrics
+    waiter_sales = (
+        sales_data.values("waiter__username")
+        .annotate(total_sales=Sum("total"), sales_count=Count("id"))
+        .order_by("-total_sales")[:5]
     )
 
-    # Sales Chart Data
-    sales_chart_data = {
-        "labels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],  # Example
-        "values": [500, 700, 900, 600, 1200, 1500, 800],  # Replace with real data
-    }
+    # Top-selling Products
+    top_products = (
+        sale_items_data.values("product__name")
+        .annotate(quantity_sold=Sum("quantity"))
+        .order_by("-quantity_sold")[:5]
+    )
 
-    # Inventory Chart Data
-    inventory_chart_data = {
-        "labels": [inv.name for inv in Inventory.objects.all()[:10]],
-        "values": [100, 200, 150, 400, 250, 300, 100, 150, 200, 50],  # Replace with real data
-    }
+    # Payments Breakdown
+    payment_breakdown = (
+        payment_data.values("payment_type")
+        .annotate(total=Sum("amount"))
+        .order_by("-total")
+    )
 
+    # Daily Sales Data for Chart
+    daily_sales = (
+        sales_data.extra({"day": "DATE(date)"})
+        .values("day")
+        .annotate(total=Sum("total"))
+        .order_by("day")
+    )
+    sales_chart_labels = [entry["day"].strftime("%Y-%m-%d") for entry in daily_sales]
+    sales_chart_values = [float(entry["total"]) for entry in daily_sales]
+
+    # Monthly Sales Data for Chart
+    monthly_sales = (
+        sales_data.annotate(month=TruncMonth('date'))
+        .values('month')
+        .annotate(total=Sum('total'))
+        .order_by('month')
+    )
+    monthly_sales_labels = [entry['month'].strftime('%Y-%m') for entry in monthly_sales]
+    monthly_sales_values = [float(entry['total']) for entry in monthly_sales]
+
+    # Prepare context for rendering
     context = {
         "total_sales": total_sales,
         "total_items_sold": total_items_sold,
         "total_inventory_value": total_inventory_value,
-        # "total_refunds": total_refunds,
+        "total_payments": total_payments,
+        "total_days": days_count,
+        "total_categories": categories_count,
+        "total_staff": staff_count,
+        "waiter_sales": waiter_sales,
         "top_products": top_products,
-        "sales_chart_data": sales_chart_data,
-        "inventory_chart_data": inventory_chart_data,
+        "payment_breakdown": payment_breakdown,
+        "sales_chart_labels": sales_chart_labels,
+        "sales_chart_values": sales_chart_values,
+        "inventory_chart_labels": monthly_sales_labels,
+        "inventory_chart_values": monthly_sales_values,
     }
 
-    return render(request, 'resturant/dashboard.html', context)
+    return render(request, "resturant/dashboard.html", context)
+
 
 @login_required
 def manage_approvals(request):

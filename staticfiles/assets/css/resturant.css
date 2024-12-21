@@ -162,17 +162,17 @@ body {
     /* width: 100%; */
     /* border-radius: 8px; */
   }
-  .itemContainImage{
+  /* .itemContainImage{ */
     /* border: 1px solid blue; */
-    height: 7.5rem;
+    /* height: 7.5rem;
     padding-bottom: 0;
     margin-bottom: -0.8rem;
     
-  }
-  .itemContainImage img {
+  } */
+  /* .itemContainImage img {
 height:100%;   
  border-radius: 8px;
-  }
+  } */
   
   .item p {
     /* margin-top:x  0; */
@@ -259,7 +259,7 @@ height:100%;
     font-size: 0.8rem;
     padding: 0.5rem;
     color: rgb(231, 231, 231);
-    margin-top: 1rem;
+    margin-top: 0.3rem;
     border-radius: 8px;
     background-color: #810101ea ;
   
@@ -351,9 +351,9 @@ height:100%;
     border: 1px solid rgb(231, 231, 231);
     height: 1.5rem;
     border: none;
-    margin-top: 39px;
-    width: 5rem;
-    margin-bottom: 10px;
+    margin-top: 0 !important;
+    width: 1rem !important;
+    margin-bottom: 0 !important;
     
   }
   .delete-btn:hover{
@@ -1329,13 +1329,13 @@ height:100%;
   
   @media screen and (max-width:1280px){
     .order-details {
-      width: 30%;
+      width: 30% ;
       /* padding: 2px;
       background-color: red ;
       border: 1px solid blue; */
     }
     .main-content2 {
-      width: 50%;
+      width: 56% !important;
       /* padding: 0;
       margin-top: 3.5rem;
       margin-left: -10px;

@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'Resturant.apps.ResturantConfig',
     'fashion.apps.FashionConfig',
     'spa.apps.SpaConfig',
-    'lounge.apps.LoungeConfig',                                                                                                                                                                                                                                              
+    'lounge.apps.LoungeConfig',    
+                                                                                                                                                                                                                                              
 
     #packages
     'crispy_forms',

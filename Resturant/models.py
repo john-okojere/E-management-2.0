@@ -50,7 +50,7 @@ class Inventory(models.Model):
         return self.category > 0
 
 class Sale(models.Model):
-    type = models.CharField(max_length=100, choices=[('Take Away', 'Take Away'), ('Dine In', 'Dine In')])
+    type = models.CharField(max_length=100, default='Dine In', choices=[('Take Away', 'Take Away'), ('Dine In', 'Dine In')])
     Table_no = models.CharField(max_length=100)
     cashier = models.ForeignKey(CustomUser, null=True, on_delete=models.CASCADE, related_name="resturant_sale")  # Who handled the sale
     day = models.ForeignKey(Day, on_delete=models.CASCADE)

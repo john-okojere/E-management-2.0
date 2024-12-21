@@ -92,6 +92,7 @@ class RoleBasedRedirectMiddleware:
                 f'/{user_section.lower()}/export/doc/',
                 f'/{user_section.lower()}/approve-day/<int:day_id>/',
             ])
+
         elif user_role == 'Waiter' and user_section and user_section.lower() in SECTIONS:
             allowed_paths.extend([
                 f'/{user_section.lower()}/waiter/',
@@ -110,7 +111,6 @@ class RoleBasedRedirectMiddleware:
         allowed_paths.append(f'/{user_section.lower()}/sale/receipt/<int:sale_id>/')
 
         path = request.path
-        print(user_role,user_section,request.path,'Denied access')
         # Store last valid path in session if it's allowed
         if path in allowed_paths or any(path.startswith(ap.rstrip('<int:sale_id>/')) for ap in allowed_paths):
             request.session[f'last_valid_url_{user_role.lower()}'] = path
@@ -119,12 +119,13 @@ class RoleBasedRedirectMiddleware:
         elif path in allowed_paths or any(path.startswith(ap.rstrip('<int:sale_item_id>/')) for ap in allowed_paths):
             request.session[f'last_valid_url_{user_role.lower()}'] = path
         else:
-            # Default redirects if no valid URL in session
+            print(user_role,user_section,request.path,'Denied access')
             if user_role == 'Cashier' and user_section:
+          
                 return redirect(f'/{user_section.lower()}/cashier/')
             elif user_role == 'Manager' and user_section:
                 return redirect(f'/{user_section.lower()}/dashboard/')
-            elif user_role == 'Manager' and user_section:
+            elif user_role == 'Waiter' and user_section:
                 return redirect(f'/{user_section.lower()}/waiter/')
 
         return self.get_response(request)
