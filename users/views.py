@@ -26,6 +26,7 @@ def add_user(request):
         if form.is_valid():
             f = form.save(commit=False)
             f.created_by = request.user
+            
             form.save()
     return redirect('customusers')  # Redirect to the dashboard
 
@@ -124,6 +125,7 @@ def face_auth(request):
                 return JsonResponse({'status': 'error', 'message': 'No profile picture found for the user.'})
 
             profile_picture_path = user.avatar.path
+            
 
             # Load and preprocess the reference image
             reference_image = face_recognition.load_image_file(profile_picture_path)
